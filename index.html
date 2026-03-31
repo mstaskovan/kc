@@ -8,7 +8,14 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         body { background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; padding: 10px; min-height: 100vh; }
 
-        .main-title { text-align: center; color: #2c3e50; margin: 15px 0 5px 0; font-size: 1.5rem; line-height: 1.2; }
+        .main-title {
+            text-align: center;
+            color: #2c3e50;
+            margin: 20px 0 10px 0; /* Jednotné medzery: hore 20px, dole 10px */
+            font-size: 1.6rem;      /* Rovnaká veľkosť písma */
+            line-height: 1.2;
+            font-weight: bold;
+        }
 
         /* Prepínač nad sliderom */
         .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; }
@@ -34,7 +41,7 @@
         .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
         @media (max-width: 480px) {
-            .main-title { font-size: 1.2rem; }
+            .main-title {font-size: 1.3rem; margin: 15px 0 10px 0; }
             .nav-btn { padding: 10px; font-size: 0.9rem; }
         }
     </style>
