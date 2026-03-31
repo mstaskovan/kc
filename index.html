@@ -6,117 +6,46 @@
     <title>Krížová cesta 2026 Rajecké Teplice</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; padding: 10px; min-height: 100vh; }
+
+        .main-title { text-align: center; color: #2c3e50; margin: 15px 0 5px 0; font-size: 1.5rem; line-height: 1.2; }
+
+        /* Prepínač nad sliderom */
+        .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; }
+        .toggle-btn { 
+            background: #8e44ad; color: white; text-decoration: none; padding: 10px 20px; 
+            border-radius: 20px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .slider-wrapper { width: 100%; max-width: 900px; background: white; padding: 5px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .slider-container { position: relative; overflow: hidden; width: 100%; background: white; }
+        .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
+        .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; }
+
+        /* Navigácia pod sliderom */
+        .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
+        .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
         
-        body { 
-            background-color: #f4f4f4; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 15px;
-            min-height: 100vh;
-        }
-
-        .main-title {
-            text-align: center;
-            color: #2c3e50;
-            margin: 20px 0;
-            font-size: 1.6rem;
-            line-height: 1.2;
-        }
-
-        .slider-wrapper {
-            width: 100%;
-            max-width: 900px;
-            background: white;
-            padding: 5px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-
-        .slider-container {
-            position: relative;
-            overflow: hidden;
-            width: 100%;
-            background: white;
-        }
-
-        .slides {
-            display: flex;
-            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            align-items: center;
-        }
-
-        .slides img {
-            width: 100%;
-            height: auto;
-            flex-shrink: 0;
-            display: block;
-        }
-
-        .navigation-bar {
-            margin-top: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            width: 100%;
-            max-width: 900px;
-        }
-
-        .nav-btn {
-            background: #4a4a4a;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 16px;
-            cursor: pointer;
-            border-radius: 8px;
-            flex: 1;
-            max-width: 120px;
-            transition: 0.2s;
-        }
-
+        .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; transition: 0.2s; }
         .nav-btn:hover { background: #222; }
 
-        .controls-center {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 5px;
-            flex: 2;
-        }
-
-        select {
-            width: 100%;
-            max-width: 200px;
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-        }
-
-        .counter {
-            font-size: 14px;
-            color: #666;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
+        .controls-center { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
+        select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
+        .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
         @media (max-width: 480px) {
-            .main-title { font-size: 1.3rem; }
-            .nav-btn { padding: 10px; font-size: 14px; }
-        }
-        .toggle-btn {
-            background: #8e44ad !important; /* Odlišná farba pre prepínač */
-            text-decoration: none;
-            text-align: center;
+            .main-title { font-size: 1.2rem; }
+            .nav-btn { padding: 10px; font-size: 0.9rem; }
         }
     </style>
 </head>
 <body>
 
 <h1 class="main-title">Krížová cesta 2026<br>Rajecké Teplice</h1>
+
+<div class="top-nav">
+    <a href="texty.html" class="toggle-btn">Prepnúť na IBA TEXTY</a>
+</div>
 
 <div class="slider-wrapper">
     <div class="slider-container">
@@ -125,15 +54,15 @@
 </div>
 
 <div class="navigation-bar">
-    <a href="texty.html" class="nav-btn toggle-btn">iba texty</a>
-    <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Späť</button>
+    <div class="nav-controls">
+        <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Späť</button>
+        <button class="nav-btn" onclick="moveSlide(1)">Ďalej &#10095;</button>
+    </div>
     
     <div class="controls-center">
         <div class="counter" id="counter">Úvod</div>
         <select id="pageSelect" onchange="goToSlide(this.value)"></select>
     </div>
-
-    <button class="nav-btn" onclick="moveSlide(1)">Ďalej &#10095;</button>
 </div>
 
 <script>
@@ -143,28 +72,22 @@
     const counter = document.getElementById('counter');
     let currentIndex = 0;
 
-    // Funkcia na určenie názvu strany
     function getSlideName(index) {
         if (index === 1) return "Úvod";
         if (index === 16) return "Záver";
         return `Zastavenie ${index - 1}`;
     }
 
-    // Generovanie slidera
     for (let i = 1; i <= totalImages; i++) {
         let fileName = i < 10 ? `0${i}` : i;
-        let slideName = getSlideName(i);
-
-        // Pridanie obrázka
         let img = document.createElement('img');
         img.src = `img/${fileName}.jpg`;
-        img.alt = slideName;
+        img.alt = getSlideName(i);
         slidesContainer.appendChild(img);
 
-        // Pridanie do výberu
         let option = document.createElement('option');
         option.value = i - 1;
-        option.text = slideName;
+        option.text = getSlideName(i);
         select.appendChild(option);
     }
 
@@ -172,8 +95,6 @@
         slidesContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
         select.value = currentIndex;
         counter.innerText = getSlideName(currentIndex + 1);
-        
-        // Pri prepnutí vyskočiť na vrch (dobré pre mobily)
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -189,12 +110,10 @@
         updateSlider();
     }
 
-    // Ovládanie klávesnicou
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowLeft") moveSlide(-1);
         if (e.key === "ArrowRight") moveSlide(1);
     });
 </script>
-
 </body>
 </html>
