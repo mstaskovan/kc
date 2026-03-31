@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Texty - Krížová cesta 2026</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body { background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; padding: 15px; min-height: 100vh; }
+
+        .main-title { text-align: center; color: #2c3e50; margin: 20px 0; font-size: 1.6rem; }
+
+        /* Slider pre text */
+        .slider-wrapper {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            min-height: 400px; /* Minimálna výška aby to neskákalo */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .text-content {
+            width: 100%;
+            text-align: center;
+            font-size: 1.4rem; /* Základná veľkosť */
+            line-height: 1.6;
+            white-space: pre-line; /* Zachová riadkovanie z kódu */
+            color: #333;
+            transition: opacity 0.3s ease;
+        }
+
+        /* Zoomovanie textu */
+        .zoom-controls {
+            margin-bottom: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .zoom-btn {
+            background: #ddd;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .navigation-bar {
+            margin-top: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 800px;
+            flex-wrap: wrap;
+        }
+
+        .nav-btn {
+            background: #4a4a4a;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 8px;
+            flex: 1;
+            min-width: 100px;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .toggle-btn { background: #27ae60; } /* Zelená pre návrat k notám */
+
+        .controls-center { display: flex; flex-direction: column; align-items: center; gap: 5px; flex: 2; }
+        
+        select { width: 100%; max-width: 200px; padding: 10px; border-radius: 8px; border: 1px solid #ccc; }
+        
+        .counter { font-size: 14px; color: #666; font-weight: bold; text-transform: uppercase; }
+    </style>
+</head>
+<body>
+
+<h1 class="main-title">Texty piesní<br>Krížová cesta 2026</h1>
+
+<div class="zoom-controls">
+    <button class="zoom-btn" onclick="changeZoom(-2)">A-</button>
+    <button class="zoom-btn" onclick="resetZoom()">Pôvodná veľkosť</button>
+    <button class="zoom-btn" onclick="changeZoom(2)">A+</button>
+</div>
+
+<div class="slider-wrapper">
+    <div id="textContent" class="text-content">
+        </div>
+</div>
+
+<div class="navigation-bar">
+    <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Predchádzajúca</button>
+    
+    <div class="controls-center">
+        <div class="counter" id="counter">Úvod</div>
+        <select id="pageSelect" onchange="goToSlide(this.value)"></select>
+    </div>
+
+    <button class="nav-btn" onclick="moveSlide(1)">Nasledujúca &#10095;</button>
+    
+    <a href="index.html" class="nav-btn toggle-btn">Zobraziť noty</a>
+</div>
+
+<script>
+    // SEM VLOŽ SVOJE TEXTY
+    const texts = [
+        "Úvodná pieseň:\nKlaniame sa ti, Pane Ježišu Kriste...", // 1 (Úvod)
+        "1. zastavenie:\nTu vlož text pre prvé zastavenie.\nPán Ježiš je odsúdený.", // 2
+        "2. zastavenie:\nText pre druhé zastavenie...", // 3
+        "3. zastavenie:\nText pre tretie zastavenie...", // 4
+        "4. zastavenie:\n...", // 5
+        "5. zastavenie:\n...", // 6
+        "6. zastavenie:\n...", // 7
+        "7. zastavenie:\n...", // 8
+        "8. zastavenie:\n...", // 9
+        "9. zastavenie:\n...", // 10
+        "10. zastavenie:\n...", // 11
+        "11. zastavenie:\n...", // 12
+        "12. zastavenie:\n...", // 13
+        "13. zastavenie:\n...", // 14
+        "14. zastavenie:\n...", // 15
+        "Záverečná modlitba:\nĎakujeme ti, Pane..." // 16 (Záver)
+    ];
+
+    let currentIndex = 0;
+    let currentFontSize = 22; // Počiatočná veľkosť v pixeloch
+
+    const textElement = document.getElementById('textContent');
+    const select = document.getElementById('pageSelect');
+    const counter = document.getElementById('counter');
+
+    // Inicializácia selectu a prvého textu
+    function init() {
+        texts.forEach((_, i) => {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.text = i === 0 ? "Úvod" : (i === 15 ? "Záver" : `Zastavenie ${i}`);
+            select.appendChild(opt);
+        });
+        updateDisplay();
+    }
+
+    function updateDisplay() {
+        textElement.style.opacity = 0; // Efekt zmiznutia
+        
+        setTimeout(() => {
+            textElement.innerText = texts[currentIndex];
+            textElement.style.opacity = 1; // Efekt objavenia
+            select.value = currentIndex;
+            
+            let label = currentIndex === 0 ? "Úvod" : (currentIndex === 15 ? "Záver" : `Zastavenie ${currentIndex}`);
+            counter.innerText = label;
+        }, 200);
+    }
+
+    function moveSlide(dir) {
+        currentIndex += dir;
+        if (currentIndex >= texts.length) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = texts.length - 1;
+        updateDisplay();
+    }
+
+    function goToSlide(val) {
+        currentIndex = parseInt(val);
+        updateDisplay();
+    }
+
+    // Funkcie pre Zoom
+    function changeZoom(amount) {
+        currentFontSize += amount;
+        textElement.style.fontSize = currentFontSize + "px";
+    }
+
+    function resetZoom() {
+        currentFontSize = 22;
+        textElement.style.fontSize = currentFontSize + "px";
+    }
+
+    init();
+</script>
+
+</body>
+</html>
