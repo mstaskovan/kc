@@ -11,28 +11,55 @@
         .main-title {
             text-align: center;
             color: #2c3e50;
-            margin: 20px 0 10px 0; /* Jednotné medzery: hore 20px, dole 10px */
-            font-size: 1.6rem;      /* Rovnaká veľkosť písma */
+            margin: 20px 0 10px 0;
+            font-size: 1.6rem;
             line-height: 1.2;
             font-weight: bold;
         }
 
-        /* Prepínač nad sliderom */
-        .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; }
-        .toggle-btn { 
-            background: #8e44ad; color: white; text-decoration: none; padding: 10px 20px; 
-            border-radius: 20px; font-weight: bold; font-size: 0.9rem; box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        /* Prepínač módov */
+        .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; gap: 10px; }
+        .mode-btn { 
+            background: #ccc; color: #333; border: none; padding: 10px 20px; 
+            border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: 0.3s;
+        }
+        .mode-btn.active { color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        #btn-noty.active { background: #8e44ad; }
+        #btn-texty.active { background: #27ae60; }
+
+        /* Zoom kontroly pre text */
+        #zoom-controls { margin-bottom: 15px; display: none; gap: 10px; }
+        #zoom-controls.visible { display: flex; }
+        .zoom-btn { background: #ddd; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+
+        /* Spoločný obal slidera */
+        .slider-wrapper { 
+            width: 100%; max-width: 900px; background: white; border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 5px; overflow: hidden;
         }
 
-        .slider-wrapper { width: 100%; max-width: 900px; background: white; padding: 5px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .slider-container { position: relative; overflow: hidden; width: 100%; background: white; }
+        /* Sekcia pre NOTY */
+        #noty-section { position: relative; overflow: hidden; width: 100%; }
         .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
         .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; }
+
+        /* Sekcia pre TEXTY */
+        #texty-section { 
+            width: 100%; min-height: 350px; padding: 25px; 
+            display: none; align-items: center; justify-content: center; 
+        }
+        .text-display { 
+            width: 100%; text-align: center; font-size: 1.3rem; 
+            line-height: 1.5; white-space: pre-line; color: #333; 
+        }
+
+        /* Pomocné triedy */
+        .hidden { display: none !important; }
+        .show-flex { display: flex !important; }
 
         /* Navigácia pod sliderom */
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
         .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
-        
         .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; transition: 0.2s; }
         .nav-btn:hover { background: #222; }
 
@@ -41,8 +68,8 @@
         .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
         @media (max-width: 480px) {
-            .main-title {font-size: 1.3rem; margin: 15px 0 10px 0; }
-            .nav-btn { padding: 10px; font-size: 0.9rem; }
+            .main-title { font-size: 1.3rem; }
+            .text-display { font-size: 1.1rem; }
         }
     </style>
 </head>
@@ -51,12 +78,23 @@
 <h1 class="main-title">Krížová cesta 2026<br>Rajecké Teplice</h1>
 
 <div class="top-nav">
-    <a href="texty.html" class="toggle-btn">Prepnúť na TEXTY</a>
+    <button id="btn-noty" class="mode-btn active" onclick="setMode('noty')">NOTY</button>
+    <button id="btn-texty" class="mode-btn" onclick="setMode('texty')">TEXTY</button>
+</div>
+
+<div id="zoom-controls">
+    <button class="zoom-btn" onclick="changeZoom(-2)">A-</button>
+    <button class="zoom-btn" onclick="resetZoom()">Pôvodná</button>
+    <button class="zoom-btn" onclick="changeZoom(2)">A+</button>
 </div>
 
 <div class="slider-wrapper">
-    <div class="slider-container">
-        <div class="slides" id="slides"></div>
+    <div id="noty-section">
+        <div class="slides" id="slides-img"></div>
+    </div>
+
+    <div id="texty-section">
+        <div id="text-display" class="text-display"></div>
     </div>
 </div>
 
@@ -73,54 +111,121 @@
 </div>
 
 <script>
-    const totalImages = 16;
-    const slidesContainer = document.getElementById('slides');
-    const select = document.getElementById('pageSelect');
-    const counter = document.getElementById('counter');
+    const totalSlides = 16;
     let currentIndex = 0;
+    let currentMode = 'noty'; // 'noty' alebo 'texty'
+    let currentFontSize = 22;
+
+    const texts = [
+        "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
+        "1. zastavenie:\nJežiš je odsúdený na smrť.",
+        "2. zastavenie:\nJežiš berie kríž na svoje plecia.",
+        "3. zastavenie:\nJežiš padá prvý raz pod krížom.",
+        "4. zastavenie:\nJežiš sa stretá so svojou Matkou.",
+        "5. zastavenie:\nŠimon Cyrenajský pomáha Ježišovi niesť kríž.",
+        "6. zastavenie:\nVeronika podáva Ježišovi šatku.",
+        "7. zastavenie:\nJežiš padá druhý raz pod krížom.",
+        "8. zastavenie:\nJežiš napomína plačúce ženy.",
+        "9. zastavenie:\nJežiš padá tretí raz pod krížom.",
+        "10. zastavenie:\nJežišovi vyzliekajú šaty.",
+        "11. zastavenie:\nJežiša pribíjajú na kríž.",
+        "12. zastavenie:\nJežiš na kríži zomiera.",
+        "13. zastavenie:\nJežiša snímajú z kríža.",
+        "14. zastavenie:\nJežiša pochovávajú.",
+        "Záverečná pieseň:\nKristus víťaz, Kristus kráľ!"
+    ];
 
     function getSlideName(index) {
-        if (index === 1) return "Úvod";
-        if (index === 16) return "Záver";
-        return `Zastavenie ${index - 1}`;
+        if (index === 0) return "Úvod";
+        if (index === 15) return "Záver";
+        return `Zastavenie ${index}`;
     }
 
-    for (let i = 1; i <= totalImages; i++) {
-        let fileName = i < 10 ? `0${i}` : i;
+    // Inicializácia
+    const slidesImgContainer = document.getElementById('slides-img');
+    const select = document.getElementById('pageSelect');
+
+    for (let i = 0; i < totalSlides; i++) {
+        // Obrázky (01.jpg - 16.jpg)
+        let fileName = (i + 1) < 10 ? `0${i + 1}` : (i + 1);
         let img = document.createElement('img');
         img.src = `img/${fileName}.jpg`;
-        img.alt = getSlideName(i);
-        slidesContainer.appendChild(img);
+        slidesImgContainer.appendChild(img);
 
+        // Select menu
         let option = document.createElement('option');
-        option.value = i - 1;
+        option.value = i;
         option.text = getSlideName(i);
         select.appendChild(option);
     }
 
-    function updateSlider() {
-        slidesContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
+    function setMode(mode) {
+        currentMode = mode;
+        const notySec = document.getElementById('noty-section');
+        const textySec = document.getElementById('texty-section');
+        const zoomCtrl = document.getElementById('zoom-controls');
+        
+        // Prepnutie vizuálu tlačidiel
+        document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
+        document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
+
+        if (mode === 'noty') {
+            notySec.classList.remove('hidden');
+            textySec.classList.remove('show-flex');
+            zoomCtrl.classList.remove('visible');
+        } else {
+            notySec.classList.add('hidden');
+            textySec.classList.add('show-flex');
+            zoomCtrl.classList.add('visible');
+        }
+        updateDisplay();
+    }
+
+    function updateDisplay() {
+        // Update Noty (posun slidera)
+        slidesImgContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
+        
+        // Update Texty
+        document.getElementById('text-display').innerText = texts[currentIndex];
+        
+        // Update UI prvky
         select.value = currentIndex;
-        counter.innerText = getSlideName(currentIndex + 1);
+        document.getElementById('counter').innerText = getSlideName(currentIndex);
+        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function moveSlide(direction) {
         currentIndex += direction;
-        if (currentIndex >= totalImages) currentIndex = 0;
-        if (currentIndex < 0) currentIndex = totalImages - 1;
-        updateSlider();
+        if (currentIndex >= totalSlides) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = totalSlides - 1;
+        updateDisplay();
     }
 
     function goToSlide(index) {
         currentIndex = parseInt(index);
-        updateSlider();
+        updateDisplay();
     }
 
+    // Zoom funkcie
+    function changeZoom(amount) {
+        currentFontSize += amount;
+        document.getElementById('text-display').style.fontSize = currentFontSize + "px";
+    }
+    function resetZoom() {
+        currentFontSize = 22;
+        document.getElementById('text-display').style.fontSize = currentFontSize + "px";
+    }
+
+    // Klávesnica
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowLeft") moveSlide(-1);
         if (e.key === "ArrowRight") moveSlide(1);
     });
+
+    // Spustenie prvého zobrazenia
+    updateDisplay();
 </script>
+
 </body>
 </html>
