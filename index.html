@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jednoduchý Slider</title>
+    <style>
+        /* Základný reset a štýl */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; background: #f4f4f4; }
+
+        /* Kontajner pre slider */
+        .slider-container {
+            position: relative;
+            width: 90%;
+            max-width: 800px;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: #fff;
+        }
+
+        /* Obal pre obrázky */
+        .slides {
+            display: flex;
+            transition: transform 0.5s ease-in-out;
+        }
+
+        .slides img {
+            width: 100%;
+            display: block;
+            flex-shrink: 0; /* Zabezpečí, aby sa obrázky nezmenšovali */
+        }
+
+        /* Šípky */
+        .btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            border: none;
+            padding: 15px;
+            cursor: pointer;
+            font-size: 20px;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+        .btn:hover { background: rgba(0,0,0,0.8); }
+        .prev { left: 10px; }
+        .next { right: 10px; }
+
+        /* Navigácia číslami */
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        select {
+            padding: 5px 10px;
+            font-size: 16px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="slider-container">
+    <div class="slides" id="slides">
+        <img src="https://picsum.photos/id/10/800/450" alt="Obrázok 1">
+        <img src="https://picsum.photos/id/20/800/450" alt="Obrázok 2">
+        <img src="https://picsum.photos/id/30/800/450" alt="Obrázok 3">
+        <img src="https://picsum.photos/id/40/800/450" alt="Obrázok 4">
+        <img src="https://picsum.photos/id/50/800/450" alt="Obrázok 5">
+        </div>
+
+    <button class="btn prev" onclick="moveSlide(-1)">&#10094;</button>
+    <button class="btn next" onclick="moveSlide(1)">&#10095;</button>
+</div>
+
+<div class="controls">
+    <label for="pageSelect">Prejsť na stranu:</label>
+    <select id="pageSelect" onchange="goToSlide(this.value)">
+        </select>
+</div>
+
+<script>
+    let currentIndex = 0;
+    const slides = document.getElementById('slides');
+    const images = document.querySelectorAll('.slides img');
+    const select = document.getElementById('pageSelect');
+
+    // Inicializácia selectu podľa počtu obrázkov
+    images.forEach((_, index) => {
+        let option = document.createElement('option');
+        option.value = index;
+        option.text = `Obrázok ${index + 1}`;
+        select.appendChild(option);
+    });
+
+    function updateSlider() {
+        slides.style.transform = `translateX(${-currentIndex * 100}%)`;
+        select.value = currentIndex;
+    }
+
+    function moveSlide(direction) {
+        currentIndex += direction;
+        if (currentIndex >= images.length) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = images.length - 1;
+        updateSlider();
+    }
+
+    function goToSlide(index) {
+        currentIndex = parseInt(index);
+        updateSlider();
+    }
+</script>
+
+</body>
+</html>
