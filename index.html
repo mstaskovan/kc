@@ -5,45 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Krížová cesta 2026 Rajecké Teplice</title>
     <style>
-        /* Základné nastavenia */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         
         body { 
-            background-color: #f9f9f9; 
+            background-color: #f4f4f4; 
             display: flex; 
             flex-direction: column; 
             align-items: center; 
-            padding: 20px;
+            padding: 15px;
             min-height: 100vh;
         }
 
         .main-title {
             text-align: center;
             color: #2c3e50;
-            margin-bottom: 30px;
-            font-size: 1.8rem;
+            margin: 20px 0;
+            font-size: 1.6rem;
+            line-height: 1.2;
         }
 
-        /* Kontajner slidera */
         .slider-wrapper {
             width: 100%;
-            max-width: 1000px;
+            max-width: 900px;
             background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            padding: 5px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
         .slider-container {
             position: relative;
             overflow: hidden;
             width: 100%;
+            background: white;
         }
 
         .slides {
             display: flex;
-            transition: transform 0.4s ease-out;
-            align-items: center; /* Vycentruje obrázky vertikálne ak sú rôzne vysoké */
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            align-items: center;
         }
 
         .slides img {
@@ -51,74 +51,71 @@
             height: auto;
             flex-shrink: 0;
             display: block;
-            background: white;
         }
 
-        /* Spodná navigácia */
         .navigation-bar {
             margin-top: 20px;
             display: flex;
             justify-content: center;
             align-items: center;
-            gap: 20px;
-            flex-wrap: wrap;
+            gap: 15px;
+            width: 100%;
+            max-width: 900px;
         }
 
         .nav-btn {
-            background: #2c3e50;
+            background: #4a4a4a;
             color: white;
             border: none;
-            padding: 12px 25px;
-            font-size: 18px;
+            padding: 12px 20px;
+            font-size: 16px;
             cursor: pointer;
-            border-radius: 5px;
-            transition: background 0.2s;
-            display: flex;
-            align-items: center;
+            border-radius: 8px;
+            flex: 1;
+            max-width: 120px;
+            transition: 0.2s;
         }
 
-        .nav-btn:hover { background: #34495e; }
-        .nav-btn:active { transform: scale(0.98); }
+        .nav-btn:hover { background: #222; }
 
         .controls-center {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 5px;
+            flex: 2;
         }
 
         select {
-            padding: 8px 12px;
+            width: 100%;
+            max-width: 200px;
+            padding: 10px;
             font-size: 16px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            background: white;
-            cursor: pointer;
+            border-radius: 8px;
+            border: 1px solid #ccc;
         }
 
         .counter {
             font-size: 14px;
-            color: #7f8c8d;
+            color: #666;
             font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        /* Responzivita pre mobil */
-        @media (max-width: 600px) {
-            .main-title { font-size: 1.4rem; }
-            .nav-btn { padding: 10px 20px; width: 45%; justify-content: center; }
-            .navigation-bar { gap: 10px; }
-            .controls-center { order: -1; width: 100%; margin-bottom: 10px; }
+        @media (max-width: 480px) {
+            .main-title { font-size: 1.3rem; }
+            .nav-btn { padding: 10px; font-size: 14px; }
         }
     </style>
 </head>
 <body>
 
-<h1 class="main-title">Krížová cesta 2026 Rajecké Teplice</h1>
+<h1 class="main-title">Krížová cesta 2026<br>Rajecké Teplice</h1>
 
 <div class="slider-wrapper">
     <div class="slider-container">
-        <div class="slides" id="slides">
-            </div>
+        <div class="slides" id="slides"></div>
     </div>
 </div>
 
@@ -126,7 +123,7 @@
     <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Späť</button>
     
     <div class="controls-center">
-        <div class="counter" id="counter">Zastavenie 1 / 20</div>
+        <div class="counter" id="counter">Úvod</div>
         <select id="pageSelect" onchange="goToSlide(this.value)"></select>
     </div>
 
@@ -134,36 +131,43 @@
 </div>
 
 <script>
-    const totalImages = 20;
+    const totalImages = 16;
     const slidesContainer = document.getElementById('slides');
     const select = document.getElementById('pageSelect');
     const counter = document.getElementById('counter');
     let currentIndex = 0;
 
-    // Generovanie obsahu
+    // Funkcia na určenie názvu strany
+    function getSlideName(index) {
+        if (index === 1) return "Úvod";
+        if (index === 16) return "Záver";
+        return `Zastavenie ${index - 1}`;
+    }
+
+    // Generovanie slidera
     for (let i = 1; i <= totalImages; i++) {
         let fileName = i < 10 ? `0${i}` : i;
-        
-        // Obrázok
+        let slideName = getSlideName(i);
+
+        // Pridanie obrázka
         let img = document.createElement('img');
         img.src = `img/${fileName}.jpg`;
-        img.alt = `Zastavenie ${i}`;
+        img.alt = slideName;
         slidesContainer.appendChild(img);
 
-        // Možnosť v selecte
+        // Pridanie do výberu
         let option = document.createElement('option');
         option.value = i - 1;
-        option.text = `Zastavenie ${i}`;
+        option.text = slideName;
         select.appendChild(option);
     }
 
     function updateSlider() {
-        // Posun o 100% šírky kontajnera
         slidesContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
         select.value = currentIndex;
-        counter.innerText = `Zastavenie ${currentIndex + 1} / ${totalImages}`;
+        counter.innerText = getSlideName(currentIndex + 1);
         
-        // Scroll na vrch stránky pri prepnutí (voliteľné, užitočné na mobile)
+        // Pri prepnutí vyskočiť na vrch (dobré pre mobily)
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -179,7 +183,7 @@
         updateSlider();
     }
 
-    // Podpora šípok na klávesnici
+    // Ovládanie klávesnicou
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowLeft") moveSlide(-1);
         if (e.key === "ArrowRight") moveSlide(1);
