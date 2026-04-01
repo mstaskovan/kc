@@ -2,7 +2,7 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
@@ -54,7 +54,7 @@
             line-height: 1.5; white-space: pre-line; color: #333; 
         }
 
-        /* LIGHTBOX (POPUP) PRE OBRÁZKY - UPRAVENÝ PRE VLASTNÝ ZOOM */
+        /* LIGHTBOX (POPUP) PRE OBRÁZKY */
         #lightbox {
             display: none;
             position: fixed;
@@ -66,28 +66,12 @@
             background-color: rgba(0, 0, 0, 0.95);
             justify-content: center;
             align-items: center;
-            overflow: hidden; /* Dôležité: vypne scrollovanie celého popupu */
-            touch-action: none; /* Zakáže native gestá prehliadača */
         }
-        
-        /* Kontajner, ktorý budeme zoomovať a hýbať ním */
-        #lightbox-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: transform 0.1s ease-out; /* Jemný pohyb */
-            will-change: transform; /* Optimalizácia výkonu */
-        }
-
-        #lightbox-img {
+        #lightbox img {
             max-width: 98%;
             max-height: 98%;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            pointer-events: none; /* Kliknutia prechádzajú na container */
         }
-        
         #close-lightbox {
             position: absolute;
             top: 20px;
@@ -98,20 +82,21 @@
             cursor: pointer;
             z-index: 1001;
             user-select: none;
-            touch-action: auto; /* Krížik musí prijímať kliky */
         }
+
+        /* Pomocné triedy */
+        .hidden { display: none !important; }
+        .show-flex { display: flex !important; }
 
         /* Navigácia pod sliderom */
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
         .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
         .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; transition: 0.2s; }
-        
+        .nav-btn:hover { background: #222; }
+
         .controls-center { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
         select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
         .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-
-        .hidden { display: none !important; }
-        .show-flex { display: flex !important; }
 
         @media (max-width: 480px) {
             .main-title { font-size: 1.3rem; }
@@ -139,6 +124,7 @@
     <div id="noty-section">
         <div class="slides" id="slides-img"></div>
     </div>
+
     <div id="texty-section">
         <div id="text-display" class="text-display"></div>
     </div>
@@ -149,17 +135,16 @@
         <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Späť</button>
         <button class="nav-btn" onclick="moveSlide(1)">Ďalej &#10095;</button>
     </div>
+    
     <div class="controls-center">
         <div class="counter" id="counter">Úvod</div>
         <select id="pageSelect" onchange="goToSlide(this.value)"></select>
     </div>
 </div>
 
-<div id="lightbox">
-    <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
-    <div id="lightbox-container">
-        <img id="lightbox-img" src="" alt="Zväčšený obrázok">
-    </div>
+<div id="lightbox" onclick="closeLightbox()">
+    <span id="close-lightbox">&times;</span>
+    <img id="lightbox-img" src="" alt="Zväčšený obrázok" onclick="event.stopPropagation()">
 </div>
 
 <script>
@@ -200,6 +185,7 @@
         let fileName = (i + 1) < 10 ? `0${i + 1}` : (i + 1);
         let img = document.createElement('img');
         img.src = `img/${fileName}.jpg`;
+        // Pridáme funkciu na otvorenie popupu pri kliknutí
         img.onclick = function() { openLightbox(this.src); };
         slidesImgContainer.appendChild(img);
 
@@ -209,124 +195,22 @@
         select.appendChild(option);
     }
 
-    // --- NOVA LOGIKA PRE PROGRAMOVÝ ZOOM ---
-
-    const lightbox = document.getElementById('lightbox');
-    const lightboxContainer = document.getElementById('lightbox-container');
-    const lightboxImg = document.getElementById('lightbox-img');
-
-    // Premenné pre zoom a pohyb
-    let scale = 1;
-    let pointX = 0;
-    let pointY = 0;
-    let startX = 0;
-    let startY = 0;
-    let isDragging = false;
-    let isPinching = false;
-    let initialPinchDistance = 0;
-
+    // LOGIKA PRE LIGHTBOX
     function openLightbox(src) {
-        if (currentMode !== 'noty') return;
-        
-        // Resetujeme zoom pre nový obrázok
-        scale = 1;
-        pointX = 0;
-        pointY = 0;
-        updateTransform();
-
+        if (currentMode !== 'noty') return; // Otvárať len ak sme v móde Noty
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
         lightboxImg.src = src;
         lightbox.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Zakázať scroll stránky
+        // Zakázať scrollovanie pozadia pri otvorenom popupe
+        document.body.style.overflow = 'hidden';
     }
 
     function closeLightbox() {
-        lightbox.style.display = 'none';
-        document.body.style.overflow = 'auto'; // Povoliť scroll stránky
+        document.getElementById('lightbox').style.display = 'none';
+        // Povoliť scrollovanie
+        document.body.style.overflow = 'auto';
     }
-
-    // Pomocná funkcia na aktualizáciu transformácie (zoom + posun)
-    function updateTransform() {
-        lightboxContainer.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-    }
-
-    // --- OVLÁDANIE GESTAMI (TOUCH) PRE MOBIL ---
-
-    // Pomocná funkcia: vzdialenosť medzi dvoma prstami
-    function getDistance(touches) {
-        return Math.hypot(touches[0].clientX - touches[1].clientX, touches[0].clientY - touches[1].clientY);
-    }
-
-    lightbox.addEventListener('touchstart', (e) => {
-        if (e.target.id === 'close-lightbox') return; // Ignorovať krížik
-
-        if (e.touches.length === 2) {
-            // Štart PINCH (zoomovania) dvoma prstami
-            isPinching = true;
-            isDragging = false;
-            initialPinchDistance = getDistance(e.touches);
-        } else if (e.touches.length === 1 && scale > 1) {
-            // Štart DRAG (posúvania) jedným prstom, len ak je prizoomované
-            isDragging = true;
-            isPinching = false;
-            startX = e.touches[0].clientX - pointX;
-            startY = e.touches[0].clientY - pointY;
-        }
-    });
-
-    lightbox.addEventListener('touchmove', (e) => {
-        e.preventDefault(); // Dôležité: zakázať native scroll prehliadača
-
-        if (isPinching && e.touches.length === 2) {
-            // Priebeh zoomovania
-            let currentDistance = getDistance(e.touches);
-            let factor = currentDistance / initialPinchDistance;
-            
-            // Nastaviť novú mierku s limitmi (od 1x do 5x)
-            let newScale = Math.min(Math.max(1, scale * factor), 5);
-            
-            // Zoomujeme k stredu, nepotrebujeme zložité výpočty stredu gesta
-            scale = newScale;
-            initialPinchDistance = currentDistance; // Reset vzdialenosti pre jemný zoom
-            updateTransform();
-
-        } else if (isDragging && e.touches.length === 1 && scale > 1) {
-            // Priebeh posúvania
-            pointX = e.touches[0].clientX - startX;
-            pointY = e.touches[0].clientY - startY;
-            updateTransform();
-        }
-    }, { passive: false }); // Pasívne eventy nemôžu použiť preventDefault
-
-    lightbox.addEventListener('touchend', (e) => {
-        // Koniec gest
-        isDragging = false;
-        isPinching = false;
-        if (e.touches.length === 0 && scale === 1) {
-            // Ak už nie sú prsty na obrazovke a sme odzoomovaní, zatvoriť popup kliknutím na pozadie
-            // Ale musíme skontrolovať, či používateľ len "neťukol" pri zoomovaní.
-            // Lepšie je zatvárať len cez krížik alebo ESC.
-        }
-    });
-
-    // --- OVLÁDANIE KOLIESKOM MYŠI PRE PC (Bónus) ---
-    lightbox.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const xs = (e.clientX - pointX) / scale;
-        const ys = (e.clientY - pointY) / scale;
-        const delta = -e.deltaY;
-        
-        // Zmena mierky kolieskom
-        let newScale = delta > 0 ? scale * 1.2 : scale / 1.2;
-        newScale = Math.min(Math.max(1, newScale), 5); // Limity 1x - 5x
-
-        pointX = e.clientX - xs * newScale;
-        pointY = e.clientY - ys * newScale;
-        scale = newScale;
-        
-        updateTransform();
-    }, { passive: false });
-
-    // Zvyšok pôvodného kódu
 
     function setMode(mode) {
         currentMode = mode;
@@ -381,7 +265,7 @@
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowLeft") moveSlide(-1);
         if (e.key === "ArrowRight") moveSlide(1);
-        if (e.key === "Escape") closeLightbox();
+        if (e.key === "Escape") closeLightbox(); // Zatvoriť ESC klávesou
     });
 
     updateDisplay();
