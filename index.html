@@ -7,7 +7,23 @@
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; padding: 10px; min-height: 100vh; }
+        body { 
+    background-color: #f4f4f4; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding: 10px; 
+    /* Zmena: nepoužívame pevných 100vh, ktoré na mobile zlostia */
+    min-height: 100%; 
+    /* Zabezpečí, že nič nevyčnieva do strán */
+    overflow-x: hidden; 
+}
+
+/* Pridané: ochrana pre html element */
+html {
+    height: -webkit-fill-available;
+    background-color: #f4f4f4;
+}
 
         .main-title {
             text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
