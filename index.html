@@ -2,91 +2,95 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
-        /* RESET A ZÁKLAD */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        
-        body { 
-            background-color: #f4f4f4; 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 10px;
-            min-height: 100vh;
-            line-height: 1.5;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
+        body {background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; padding: 10px; min-height: 100%; overflow-x: hidden; }
+
+/* Pridané: ochrana pre html element */
+html {
+    height: -webkit-fill-available;
+    background-color: #f4f4f4;
+}
 
         .main-title {
-            text-align: center; color: #2c3e50; margin: 20px 0;
-            font-size: 1.6rem; font-weight: bold;
+            text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
+            font-size: 1.6rem; line-height: 1.2; font-weight: bold;
         }
 
-        /* PREPÍNAČE */
-        .top-nav { margin-bottom: 15px; display: flex; gap: 10px; }
+        .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; gap: 10px; }
         .mode-btn { 
-            background: #ccc; border: none; padding: 10px 20px; 
-            border-radius: 20px; font-weight: bold; cursor: pointer;
+            background: #ccc; color: #333; border: none; padding: 10px 20px; 
+            border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: 0.3s;
         }
-        .mode-btn.active { color: white; }
+        .mode-btn.active { color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
         #btn-noty.active { background: #8e44ad; }
         #btn-texty.active { background: #27ae60; }
 
-        /* KONTAJNER */
+        #zoom-controls { margin-bottom: 15px; display: none; gap: 10px; }
+        #zoom-controls.visible { display: flex; }
+        .zoom-btn { background: #ddd; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+
         .slider-wrapper { 
-            width: 100%; max-width: 800px; background: white; 
-            border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
-            overflow: hidden; padding: 5px;
+            width: 100%; max-width: 900px; background: white; border-radius: 12px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 5px; overflow: hidden;
         }
 
-        #noty-section { width: 100%; overflow: hidden; }
-        .slides { display: flex; transition: transform 0.4s ease-out; }
-        .slides img { width: 100%; height: auto; display: block; cursor: zoom-in; }
+        #noty-section { position: relative; overflow: hidden; width: 100%; }
+        .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
+        .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; cursor: zoom-in; }
 
-        #texty-section { 
-            display: none; padding: 30px; text-align: center; 
-            font-size: 1.3rem; white-space: pre-line; 
-        }
+        #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
+        .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
 
-        /* LIGHTBOX - MODERNY PRISTUP */
+        /* LIGHTBOX */
         #lightbox {
             display: none;
             position: fixed;
+            z-index: 1000;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
-            z-index: 9999;
+            background-color: rgba(0, 0, 0, 0.95);
             justify-content: center;
             align-items: center;
-            touch-action: none; /* JavaScript prevezme kontrolu nad gestami */
+            overflow: hidden;
         }
 
-        #lightbox img {
-            max-width: 100%;
-            max-height: 100%;
-            transition: transform 0.1s ease-out;
-            will-change: transform;
+        #lightbox-container {
+            width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            cursor: grab;
+        }
+
+        #lightbox-img {
+            max-width: 95%;
+            max-height: 95%;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            transition: transform 0.1s ease-out; /* Plynulý zoom na PC */
+            user-select: none;
         }
 
         #close-lightbox {
-            position: absolute; top: 20px; right: 25px;
-            color: white; font-size: 40px; cursor: pointer; z-index: 10000;
+            position: fixed; top: 20px; right: 30px;
+            color: white; font-size: 50px; font-weight: bold;
+            z-index: 1001; cursor: pointer; user-select: none;
         }
 
-        /* OVLÁDANIE */
-        .navigation-bar { margin-top: 20px; width: 100%; max-width: 800px; text-align: center; }
-        .nav-controls { display: flex; gap: 10px; margin-bottom: 15px; }
-        .nav-btn { 
-            flex: 1; padding: 15px; background: #4a4a4a; color: white; 
-            border: none; border-radius: 8px; cursor: pointer; font-size: 1rem;
-        }
+        .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
+        .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
+        .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; }
         
-        select { padding: 10px; width: 100%; max-width: 250px; border-radius: 8px; }
-        .counter { margin-bottom: 5px; font-weight: bold; color: #666; font-size: 0.9rem; }
+        .controls-center { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
+        select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
+        .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
         .hidden { display: none !important; }
-        .show { display: block !important; }
+        .show-flex { display: flex !important; }
+
+        @media (max-width: 480px) {
+            #close-lightbox { top: 10px; right: 20px; font-size: 40px; }
+        }
     </style>
 </head>
 <body>
@@ -98,11 +102,19 @@
     <button id="btn-texty" class="mode-btn" onclick="setMode('texty')">TEXTY</button>
 </div>
 
+<div id="zoom-controls">
+    <button class="zoom-btn" onclick="changeZoom(-2)">A-</button>
+    <button class="zoom-btn" onclick="resetZoom()">Pôvodná veľkosť</button>
+    <button class="zoom-btn" onclick="changeZoom(2)">A+</button>
+</div>
+
 <div class="slider-wrapper">
     <div id="noty-section">
         <div class="slides" id="slides-img"></div>
     </div>
-    <div id="texty-section"></div>
+    <div id="texty-section">
+        <div id="text-display" class="text-display"></div>
+    </div>
 </div>
 
 <div class="navigation-bar">
@@ -110,108 +122,195 @@
         <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Späť</button>
         <button class="nav-btn" onclick="moveSlide(1)">Ďalej &#10095;</button>
     </div>
-    <div class="counter" id="counter">Úvod</div>
-    <select id="pageSelect" onchange="goToSlide(this.value)"></select>
+    <div class="controls-center">
+        <div class="counter" id="counter">Úvod</div>
+        <select id="pageSelect" onchange="goToSlide(this.value)"></select>
+    </div>
 </div>
 
-<div id="lightbox" onclick="closeLightbox()">
-    <span id="close-lightbox">&times;</span>
-    <img id="lightbox-img" src="" alt="" onclick="event.stopPropagation()">
+<div id="lightbox">
+    <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
+    <div id="lightbox-container" onclick="handleBgClick(event)">
+        <img id="lightbox-img" src="" alt="Noty">
+    </div>
 </div>
 
 <script>
     const totalSlides = 16;
     let currentIndex = 0;
+    let currentMode = 'noty';
+    let currentFontSize = 22;
+
     const texts = [
-        "Úvodná pieseň...", "1. zastavenie...", "2. zastavenie...", "3. zastavenie...", 
-        "4. zastavenie...", "5. zastavenie...", "6. zastavenie...", "7. zastavenie...", 
-        "8. zastavenie...", "9. zastavenie...", "10. zastavenie...", "11. zastavenie...", 
-        "12. zastavenie...", "13. zastavenie...", "14. zastavenie...", "Záverečná pieseň..."
+        "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
+        "1. zastavenie:\nJežiš je odsúdený na smrť.",
+        "2. zastavenie:\nJežiš berie kríž na svoje plecia.",
+        "3. zastavenie:\nJežiš padá prvý raz pod krížom.",
+        "4. zastavenie:\nJežiš sa stretá so svojou Matkou.",
+        "5. zastavenie:\nŠimon Cyrenajský pomáha Ježišovi niesť kríž.",
+        "6. zastavenie:\nVeronika podáva Ježišovi šatku.",
+        "7. zastavenie:\nJežiš padá druhý raz pod krížom.",
+        "8. zastavenie:\nJežiš napomína plačúce ženy.",
+        "9. zastavenie:\nJežiš padá tretí raz pod krížom.",
+        "10. zastavenie:\nJežišovi vyzliekajú šaty.",
+        "11. zastavenie:\nJežiša pribíjajú na kríž.",
+        "12. zastavenie:\nJežiš na kríži zomiera.",
+        "13. zastavenie:\nJežiša snímajú z kríža.",
+        "14. zastavenie:\nJežiša pochovávajú.",
+        "Záverečná pieseň:\nKristus víťaz, Kristus kráľ!"
     ];
 
-    // INICIALIZÁCIA
+    function getSlideName(index) {
+        if (index === 0) return "Úvod";
+        if (index === 15) return "Záver";
+        return `Zastavenie ${index}`;
+    }
+
     const slidesImgContainer = document.getElementById('slides-img');
     const select = document.getElementById('pageSelect');
 
     for (let i = 0; i < totalSlides; i++) {
-        const img = document.createElement('img');
-        img.src = `img/${String(i + 1).padStart(2, '0')}.jpg`;
-        img.onclick = () => openLightbox(img.src);
+        let fileName = (i + 1) < 10 ? `0${i + 1}` : (i + 1);
+        let img = document.createElement('img');
+        img.src = `img/${fileName}.jpg`;
+        img.onclick = function() { openLightbox(this.src); };
         slidesImgContainer.appendChild(img);
 
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.text = i === 0 ? "Úvod" : i === 15 ? "Záver" : `Zastavenie ${i}`;
-        select.appendChild(opt);
+        let option = document.createElement('option');
+        option.value = i;
+        option.text = getSlideName(i);
+        select.appendChild(option);
     }
 
-    // LIGHTBOX LOGIKA (ZOOM A DRAG)
+    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
-    let scale = 1, lastScale = 1, startDist = 0;
+    let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
 
     function openLightbox(src) {
+        scale = 1; pointX = 0; pointY = 0;
+        updateTransform();
         lbImg.src = src;
-        scale = 1;
-        lbImg.style.transform = `scale(${scale})`;
         lb.style.display = 'flex';
-        document.body.style.overflow = 'hidden'; // Iba dočasne vypne scroll pozadia
+        document.body.style.overflow = 'hidden';
+
+        // Viewport trik pre mobil
+        document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
-        document.body.style.overflow = '';
+        document.body.style.overflow = 'auto';
+
+        // Reset viewportu pre mobil
+        const vp = document.getElementById('viewport');
+        vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+        setTimeout(() => {
+            vp.content = "width=device-width, initial-scale=1.0";
+        }, 300);
     }
 
-    // PINCH TO ZOOM PRE MOBIL (NATIVE-LIKE)
-    lb.addEventListener('touchstart', e => {
-        if (e.touches.length === 2) {
-            startDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            lastScale = scale;
-        }
-    });
+    function handleBgClick(e) {
+        if (e.target !== lbImg) closeLightbox();
+    }
 
-    lb.addEventListener('touchmove', e => {
-        if (e.touches.length === 2) {
-            const dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            scale = Math.min(Math.max(1, lastScale * (dist / startDist)), 4);
-            lbImg.style.transform = `scale(${scale})`;
-        }
-    });
+    function updateTransform() {
+        lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
+    }
 
-    // MOUSE WHEEL ZOOM (PC)
-    lb.addEventListener('wheel', e => {
+    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
+    lb.addEventListener('wheel', (e) => {
         e.preventDefault();
-        scale += e.deltaY * -0.005;
-        scale = Math.min(Math.max(1, scale), 4);
-        lbImg.style.transform = `scale(${scale})`;
+        const delta = -e.deltaY;
+        const oldScale = scale;
+        scale *= (delta > 0 ? 1.15 : 0.85);
+        scale = Math.min(Math.max(1, scale), 6);
+
+        // Výpočet zoomu na kurzor
+        const rect = lbImg.getBoundingClientRect();
+        pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
+        pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
+        
+        updateTransform();
     }, { passive: false });
 
-    // KLASICKÉ FUNKCIE
+    // ŤAHANIE MYŠOU (Vždy aktívne pre PC)
+    lb.onmousedown = function(e) {
+        if (scale > 1 && e.target === lbImg) {
+            isDragging = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            lbImg.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+    };
+
+    window.onmousemove = function(e) {
+        if (!isDragging) return;
+        pointX = e.clientX - startX;
+        pointY = e.clientY - startY;
+        updateTransform();
+    };
+
+    window.onmouseup = function() {
+        isDragging = false;
+        lbImg.style.cursor = 'grab';
+    };
+
+    // --- ZVYŠOK FUNKCIÍ ---
     function setMode(mode) {
+        currentMode = mode;
+        const notySec = document.getElementById('noty-section');
+        const textySec = document.getElementById('texty-section');
+        const zoomCtrl = document.getElementById('zoom-controls');
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
-        document.getElementById('noty-section').style.display = mode === 'noty' ? 'block' : 'none';
-        document.getElementById('texty-section').style.display = mode === 'texty' ? 'block' : 'none';
+        if (mode === 'noty') {
+            notySec.classList.remove('hidden');
+            textySec.classList.remove('show-flex');
+            zoomCtrl.classList.remove('visible');
+        } else {
+            notySec.classList.add('hidden');
+            textySec.classList.add('show-flex');
+            zoomCtrl.classList.add('visible');
+        }
         updateDisplay();
     }
 
     function updateDisplay() {
-        slidesImgContainer.style.transform = `translateX(-${currentIndex * 100}%)`;
-        document.getElementById('texty-section').innerText = texts[currentIndex];
-        document.getElementById('counter').innerText = currentIndex === 0 ? "Úvod" : currentIndex === 15 ? "Záver" : `Zastavenie ${currentIndex}`;
+        slidesImgContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
+        document.getElementById('text-display').innerText = texts[currentIndex];
         select.value = currentIndex;
+        document.getElementById('counter').innerText = getSlideName(currentIndex);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    function moveSlide(n) {
-        currentIndex = (currentIndex + n + totalSlides) % totalSlides;
+    function moveSlide(direction) {
+        currentIndex += direction;
+        if (currentIndex >= totalSlides) currentIndex = 0;
+        if (currentIndex < 0) currentIndex = totalSlides - 1;
         updateDisplay();
     }
 
-    function goToSlide(n) {
-        currentIndex = parseInt(n);
+    function goToSlide(index) {
+        currentIndex = parseInt(index);
         updateDisplay();
     }
+
+    function changeZoom(amount) {
+        currentFontSize += amount;
+        document.getElementById('text-display').style.fontSize = currentFontSize + "px";
+    }
+    function resetZoom() {
+        currentFontSize = 22;
+        document.getElementById('text-display').style.fontSize = currentFontSize + "px";
+    }
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === "ArrowLeft") moveSlide(-1);
+        if (e.key === "ArrowRight") moveSlide(1);
+        if (e.key === "Escape") closeLightbox();
+    });
 
     updateDisplay();
 </script>
