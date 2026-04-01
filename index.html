@@ -39,7 +39,7 @@
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
         .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
 
-        /* LIGHTBOX - OPRAVENÁ STRUKTÚRA PRE PRESNÝ ZOOM */
+        /* LIGHTBOX */
         #lightbox {
             display: none;
             position: fixed;
@@ -58,12 +58,12 @@
         #lightbox-img {
             position: absolute;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            /* Transformácia začína vľavo hore (0,0), pozíciu presne dopočíta JS */
             transform-origin: 0 0;
             user-select: none;
             -webkit-user-drag: none;
             max-width: none; 
             transition: transform 0.1s ease-out;
+            will-change: transform;
         }
 
         #close-lightbox {
@@ -125,7 +125,7 @@
 
 <div id="lightbox">
     <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
-    <div id="lightbox-container" onclick="handleBgClick(event)">
+    <div id="lightbox-container" onmousedown="handleBgMouseDown(event)">
         <img id="lightbox-img" src="" alt="Noty">
     </div>
 </div>
@@ -141,7 +141,7 @@
         "1. zastavenie:\nJežiš je odsúdený na smrť.",
         "2. zastavenie:\nJežiš berie kríž na svoje plecia.",
         "3. zastavenie:\nJežiš padá prvý raz pod krížom.",
-        "4. zastavenie:\nJežiš sa stretá so svojou Matkou.",
+        "4. zastavenie:\nJežiš sa stretá so souvenir Matkou.",
         "5. zastavenie:\nŠimon Cyrenajský pomáha Ježišovi niesť kríž.",
         "6. zastavenie:\nVeronika podáva Ježišovi šatku.",
         "7. zastavenie:\nJežiš padá druhý raz pod krížom.",
@@ -186,7 +186,7 @@
 
     function openLightbox(src) {
         lbImg.src = src;
-        lb.style.display = 'block'; // Zmenené z flex na block kvôli absolútnej pozícii
+        lb.style.display = 'block';
         document.body.style.overflow = 'hidden';
 
         lbImg.onload = function() {
@@ -194,12 +194,10 @@
             const windowW = window.innerWidth;
             const windowH = window.innerHeight;
             
-            // Prispôsobenie veľkosti obrázka oknu (zachovanie pomeru strán)
             let ratio = Math.min(windowW * 0.9 / lbImg.naturalWidth, windowH * 0.9 / lbImg.naturalHeight);
             lbImg.width = lbImg.naturalWidth * ratio;
             lbImg.height = lbImg.naturalHeight * ratio;
 
-            // Výpočet počiatočnej pozície na stred
             pointX = (windowW - lbImg.width) / 2;
             pointY = (windowH - lbImg.height) / 2;
             
@@ -221,9 +219,16 @@
         }
     }
 
-    function handleBgClick(e) {
-        // Ak klikneme na pozadie (kontajner), nie na obrázok, zavrieť
-        if (e.target !== lbImg) closeLightbox();
+    function handleBgMouseDown(e) {
+        if (e.target !== lbImg) {
+            closeLightbox();
+        } else if (!isMobile) {
+            isDragging = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            lbImg.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
     }
 
     function updateTransform() {
@@ -247,23 +252,11 @@
         const mouseX = e.clientX;
         const mouseY = e.clientY;
 
-        // Presný výpočet zoomu na kurzor (funguje vďaka transform-origin: 0 0)
         pointX = mouseX - (mouseX - pointX) * (scale / oldScale);
         pointY = mouseY - (mouseY - pointY) * (scale / oldScale);
         
         updateTransform();
     }, { passive: false });
-
-    // ŤAHANIE MYŠOU (PC)
-    lbImg.onmousedown = function(e) {
-        if (!isMobile) {
-            isDragging = true;
-            startX = e.clientX - pointX;
-            startY = e.clientY - pointY;
-            lbImg.style.cursor = 'grabbing';
-            e.preventDefault();
-        }
-    };
 
     window.onmousemove = function(e) {
         if (!isDragging) return;
@@ -277,7 +270,6 @@
         if (lbImg) lbImg.style.cursor = 'grab';
     };
 
-    // --- OVLÁDANIE MÓDOV A NAVIGÁCIA ---
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
