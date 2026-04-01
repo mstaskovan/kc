@@ -6,7 +6,6 @@
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
-        /* ZÁKLADNÉ NASTAVENIA */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
         
         html, body {
@@ -23,11 +22,10 @@
             padding: 10px; 
         }
 
-        /* ZÁMOK POZADIA PRI OTVORENOM LIGHTBOXE */
+        /* ZÁMOK POZADIA - upravený pre lepšiu kompatibilitu */
         body.modal-open {
-            position: fixed;
-            overflow: hidden;
-            width: 100%;
+            overflow: hidden !important;
+            height: 100vh;
         }
 
         .main-title {
@@ -44,7 +42,7 @@
         #btn-noty.active { background: #8e44ad; }
         #btn-texty.active { background: #27ae60; }
 
-        /* OVLÁDANIE PÍSMA */
+        /* OVLÁDANIE TEXTU */
         #zoom-controls { margin-bottom: 15px; display: none; gap: 10px; }
         #zoom-controls.visible { display: flex; }
         .zoom-btn { background: #ddd; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -56,13 +54,16 @@
 
         #noty-section { position: relative; overflow: hidden; width: 100%; }
         .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
+        
+        /* OPRAVA ROZŤAHOVANIA OBRÁZKOV */
         .slides img { 
             width: 100%; 
             height: auto; 
+            max-height: 70vh; /* Zabraňuje prílišnému natiahnutiu na výšku na PC */
+            object-fit: contain; 
             flex-shrink: 0; 
             display: block; 
             cursor: zoom-in; 
-            object-fit: contain; /* Zabezpečí správne zobrazenie na PC */
         }
 
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
@@ -78,12 +79,12 @@
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            touch-action: none; /* Dôležité pre vlastný zoom */
         }
 
         #lightbox-container {
             width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
+            cursor: grab;
         }
 
         #lightbox-img {
@@ -92,6 +93,7 @@
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
             transition: transform 0.1s ease-out;
             user-select: none;
+            will-change: transform;
         }
 
         #close-lightbox {
@@ -108,11 +110,9 @@
         select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
         .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
 
-        .hidden { display: none !important; }
-        .show-flex { display: flex !important; }
-
         @media (max-width: 480px) {
             #close-lightbox { top: 10px; right: 20px; font-size: 40px; }
+            .slides img { max-height: none; } /* Na mobile necháme plnú výšku */
         }
     </style>
 </head>
@@ -163,7 +163,6 @@
     let currentIndex = 0;
     let currentMode = 'noty';
     let currentFontSize = 22;
-    let scrollPos = 0;
 
     const texts = [
         "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
@@ -206,28 +205,30 @@
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE PINCH) ---
+    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
-    let initialDist = -1;
 
     function openLightbox(src) {
-        scrollPos = window.pageYOffset;
-        document.body.style.top = `-${scrollPos}px`;
-        document.body.classList.add('modal-open');
-        
         scale = 1; pointX = 0; pointY = 0;
         updateTransform();
         lbImg.src = src;
         lb.style.display = 'flex';
+        document.body.classList.add('modal-open');
+
+        // Umožní mobilu natívny pinch-to-zoom
+        document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
         document.body.classList.remove('modal-open');
-        document.body.style.top = '';
-        window.scrollTo(0, scrollPos);
+
+        // Vráti viewport do bezpečného režimu
+        const vp = document.getElementById('viewport');
+        vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+        setTimeout(() => { vp.content = "width=device-width, initial-scale=1.0"; }, 300);
     }
 
     function handleBgClick(e) {
@@ -238,7 +239,7 @@
         lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // PC ZOOM (KOLIESKO)
+    // PC ZOOM KOLIESKOM
     lb.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = -e.deltaY;
@@ -250,7 +251,7 @@
         updateTransform();
     }, { passive: false });
 
-    // PC DRAG (MYŠ)
+    // PC ŤAHANIE MYŠOU
     lb.onmousedown = function(e) {
         if (scale > 1 && e.target === lbImg) {
             isDragging = true;
@@ -268,43 +269,14 @@
     };
     window.onmouseup = function() { isDragging = false; lbImg.style.cursor = 'grab'; };
 
-    // MOBILE PINCH ZOOM (DVOMA PRSTAMI)
-    lb.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) {
-            initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-        }
-    }, { passive: true });
-
-    lb.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2 && initialDist > 0) {
-            e.preventDefault();
-            const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            const zoomFactor = currentDist / initialDist;
-            scale = Math.min(Math.max(1, scale * zoomFactor), 6);
-            initialDist = currentDist;
-            updateTransform();
-        }
-    }, { passive: false });
-
-    lb.addEventListener('touchend', () => { initialDist = -1; });
-
-    // --- REŽIMY A NAVIGÁCIA ---
+    // --- OSTATNÉ FUNKCIE ---
     function setMode(mode) {
         currentMode = mode;
-        const notySec = document.getElementById('noty-section');
-        const textySec = document.getElementById('texty-section');
-        const zoomCtrl = document.getElementById('zoom-controls');
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
-        if (mode === 'noty') {
-            notySec.classList.remove('hidden');
-            textySec.classList.remove('show-flex');
-            zoomCtrl.classList.remove('visible');
-        } else {
-            notySec.classList.add('hidden');
-            textySec.classList.add('show-flex');
-            zoomCtrl.classList.add('visible');
-        }
+        document.getElementById('noty-section').style.display = mode === 'noty' ? 'block' : 'none';
+        document.getElementById('texty-section').style.display = mode === 'texty' ? 'flex' : 'none';
+        document.getElementById('zoom-controls').classList.toggle('visible', mode === 'texty');
         updateDisplay();
     }
 
