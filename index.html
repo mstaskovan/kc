@@ -56,7 +56,6 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.95);
             overflow: auto;
-            -webkit-overflow-scrolling: touch;
         }
 
         #lightbox-container {
@@ -77,25 +76,30 @@
             cursor: grab;
         }
 
-        /* ABSOLÚTNY FIX KRÍŽIKA - Mimo lightboxu v HTML */
+        /* OPRAVENÝ KRÍŽIK - Fixný a vycentrovaný */
         #global-close-btn {
-            display: none; /* Zobrazí sa cez JS */
+            display: none;
             position: fixed;
-            top: 20px;
-            right: 20px;
+            top: 15px;
+            right: 15px;
             width: 50px;
             height: 50px;
-            background: rgba(255, 0, 0, 0.7); /* Červenkasté, aby ho bolo vidieť */
+            background: #e74c3c; /* Jasná červená pre dobrú viditeľnosť */
             color: white;
-            font-size: 40px;
+            font-size: 30px;
             font-weight: bold;
             border-radius: 50%;
-            z-index: 9999; /* Úplne navrchu */
+            z-index: 9999;
             cursor: pointer;
+            border: 3px solid white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+            
+            /* Perfektné vycentrovanie X */
+            display: flex;
             align-items: center;
             justify-content: center;
-            border: 2px solid white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            line-height: 0; 
+            padding-bottom: 4px; /* Jemná korekcia pre vizuálne centrum */
         }
 
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
@@ -108,12 +112,13 @@
 
         @media (max-width: 1024px) {
             #lightbox-img { transition: none; }
+            #global-close-btn { width: 45px; height: 45px; font-size: 28px; top: 10px; right: 10px; }
         }
     </style>
 </head>
 <body>
 
-<div id="global-close-btn" onclick="closeLightbox()">&times;</div>
+<div id="global-close-btn" onclick="closeLightbox()">&#10005;</div>
 
 <h1 class="main-title">Krížová cesta 2026<br>Rajecké Teplice</h1>
 
@@ -159,24 +164,23 @@
     let currentIndex = 0;
     let currentFontSize = 22;
 
-    // TERAZ MÔŽEŠ POUŽÍVAŤ <br> PRE NOVÉ RIADKY A <b> PRE HRUBÉ PÍSMO
     const texts = [
-        "<b>Úvodná pieseň:</b><br>Ú1: Per crucem tuam adoramus Te, o Christe.<br>Ú2: A. Zostaňte a bdejte so mnou...",
+        "<b>Úvodná pieseň:</b><br>Ú1: Per crucem tuam adoramus Te, o Christe. Crucem tuam adoramus te, o Christe. <br><br><b>Ú2:</b> A. Zostaňte a bdejte so mnou, bdejte a proste, bdejte a proste.",
         "<b>1. zastavenie:</b><br>Ježiš je odsúdený na smrť.",
-        "<b>2. zastavenie:</b><br>Ježiš berie kríž na plecia.",
-        "<b>3. zastavenie:</b><br>Ježiš padá prvý raz...",
-        "<b>4. zastavenie:</b><br>Ježiš sa stretá s Matkou.",
-        "<b>5. zastavenie:</b><br>Šimon pomáha Ježišovi.",
-        "<b>6. zastavenie:</b><br>Veronika podáva šatku.",
-        "<b>7. zastavenie:</b><br>Ježiš padá druhý raz.",
-        "<b>8. zastavenie:</b><br>Ježiš napomína ženy.",
-        "<b>9. zastavenie:</b><br>Ježiš padá tretí raz.",
-        "<b>10. zastavenie:</b><br>Ježišovi vyzliekajú šaty.",
-        "<b>11. zastavenie:</b><br>Ježiša pribíjajú na kríž.",
-        "<b>12. zastavenie:</b><br>Ježiš na kríži zomiera.",
-        "<b>13. zastavenie:</b><br>Ježiša snímajú z kríža.",
-        "<b>14. zastavenie:</b><br>Ježiša pochovávajú.",
-        "<b>Záverečná pieseň:</b><br>Kristus víťaz, Kristus kráľ!"
+        "<b>2. zastavenie:</b><br>Ježiš berie kríž na svoje plecia.",
+        "<b>3. zastavenie:</b><br>Ježiš padá prvý raz pod krížom.",
+        "<b>4. zastavenie:</b><br>Ježiš sa stretá so svojou Matkou.",
+        "<b>5. zastavenie:</b><br>Šimon Cyrenajský pomáha Ježišovi niesť kríž.",
+        "<b>6. zastavenie:</b><br>Veronika podáva Ježišovi šatku.",
+        "<b>7. zastavenie:</b><br>Ježiš padá druhý raz pod krížom.",
+        "<b>8. zastavenie:</b><br>Ježiš napomína plačúce ženy.",
+        "<b>9. zastavenie:</b><br>Ježiš padá tretí raz pod krížom.",
+        "10. zastavenie:<br>Ježišovi vyzliekajú šaty.",
+        "11. zastavenie:<br>Ježiša pribíjajú na kríž.",
+        "12. zastavenie:<br>Ježiš na kríži zomiera.",
+        "13. zastavenie:<br>Ježiša snímajú z kríža.",
+        "14. zastavenie:<br>Ježiša pochovávajú.",
+        "Záverečná pieseň:<br>Kristus víťaz, Kristus kráľ!"
     ];
 
     function getSlideName(index) {
@@ -210,15 +214,17 @@
         scale = 1; offsetX = 0; offsetY = 0;
         lbImg.src = src;
         lb.style.display = 'block';
-        closeBtn.style.display = 'flex'; // Zobrazíme krížik navrchu všetkého
+        closeBtn.style.display = 'flex';
         document.body.classList.add('modal-open');
         updateTransform();
+        
+        // Upravený viewport pre mobil aby krížik menej "skákal"
         document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
-        closeBtn.style.display = 'none'; // Schováme krížik
+        closeBtn.style.display = 'none';
         document.body.classList.remove('modal-open');
         const vp = document.getElementById('viewport');
         vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
@@ -237,7 +243,6 @@
         }
     }
 
-    // PC ZOOM KOLIESKOM
     lb.addEventListener('wheel', (e) => {
         if (window.innerWidth <= 1024) return;
         e.preventDefault();
@@ -247,7 +252,6 @@
         updateTransform();
     }, { passive: false });
 
-    // PC DRAG
     lbImg.addEventListener('mousedown', (e) => {
         if (window.innerWidth > 1024 && scale > 1) {
             isDragging = true;
@@ -260,7 +264,6 @@
     window.addEventListener('mousemove', (e) => { if (isDragging) { offsetX = e.clientX - startX; offsetY = e.clientY - startY; updateTransform(); } });
     window.addEventListener('mouseup', () => { isDragging = false; lbImg.style.cursor = 'grab'; });
 
-    // --- FUNKCIE PRE REŽIMY ---
     function setMode(mode) {
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
@@ -272,7 +275,7 @@
 
     function updateDisplay() {
         slidesImgContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
-        // ZMENA NA innerHTML ABY FUNGOVALI <br>
+        // innerHTML pre formátovanie piesní
         document.getElementById('text-display').innerHTML = texts[currentIndex];
         select.value = currentIndex;
         document.getElementById('counter').innerText = getSlideName(currentIndex);
