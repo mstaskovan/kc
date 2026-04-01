@@ -212,18 +212,34 @@
         lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
+   // ZOOM KOLIESKOM (PC) - Spresnený výpočet na stred kurzora
     lb.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = -e.deltaY;
+        const zoomSpeed = 0.15;
         const oldScale = scale;
-        scale *= (delta > 0 ? 1.15 : 0.85);
+
+        // Určenie nového scale
+        if (delta > 0) scale *= (1 + zoomSpeed);
+        else scale /= (1 + zoomSpeed);
+        
+        // Limity
         scale = Math.min(Math.max(1, scale), 6);
 
-        // Výpočet zoomu na kurzor
-        const rect = lbImg.getBoundingClientRect();
-        pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
-        pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
+        // Získanie súradníc myši voči oknu
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+
+        // Kľúčový výpočet: Posunieme bod X a Y tak, 
+        // aby bod pod kurzorom zostal po zmene mierky na tom istom mieste.
+        if (scale > 1) {
+            pointX = mouseX - (mouseX - pointX) * (scale / oldScale);
+            pointY = mouseY - (mouseY - pointY) * (scale / oldScale);
+        } else {
+            // Ak sa vrátime na pôvodnú veľkosť, vycentrujeme to
+            pointX = 0;
+            pointY = 0;
+        }
         
         updateTransform();
     }, { passive: false });
