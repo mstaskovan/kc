@@ -42,7 +42,7 @@
         /* Sekcia pre NOTY */
         #noty-section { position: relative; overflow: hidden; width: 100%; }
         .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
-        .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; }
+        .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; cursor: zoom-in; }
 
         /* Sekcia pre TEXTY */
         #texty-section { 
@@ -52,6 +52,36 @@
         .text-display { 
             width: 100%; text-align: center; font-size: 1.3rem; 
             line-height: 1.5; white-space: pre-line; color: #333; 
+        }
+
+        /* LIGHTBOX (POPUP) PRE OBRÁZKY */
+        #lightbox {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.95);
+            justify-content: center;
+            align-items: center;
+        }
+        #lightbox img {
+            max-width: 98%;
+            max-height: 98%;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        #close-lightbox {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 1001;
+            user-select: none;
         }
 
         /* Pomocné triedy */
@@ -71,6 +101,7 @@
         @media (max-width: 480px) {
             .main-title { font-size: 1.3rem; }
             .text-display { font-size: 1.1rem; }
+            #close-lightbox { top: 10px; right: 20px; font-size: 30px; }
         }
     </style>
 </head>
@@ -111,10 +142,15 @@
     </div>
 </div>
 
+<div id="lightbox" onclick="closeLightbox()">
+    <span id="close-lightbox">&times;</span>
+    <img id="lightbox-img" src="" alt="Zväčšený obrázok" onclick="event.stopPropagation()">
+</div>
+
 <script>
     const totalSlides = 16;
     let currentIndex = 0;
-    let currentMode = 'noty'; // 'noty' alebo 'texty'
+    let currentMode = 'noty';
     let currentFontSize = 22;
 
     const texts = [
@@ -142,22 +178,38 @@
         return `Zastavenie ${index}`;
     }
 
-    // Inicializácia
     const slidesImgContainer = document.getElementById('slides-img');
     const select = document.getElementById('pageSelect');
 
     for (let i = 0; i < totalSlides; i++) {
-        // Obrázky (01.jpg - 16.jpg)
         let fileName = (i + 1) < 10 ? `0${i + 1}` : (i + 1);
         let img = document.createElement('img');
         img.src = `img/${fileName}.jpg`;
+        // Pridáme funkciu na otvorenie popupu pri kliknutí
+        img.onclick = function() { openLightbox(this.src); };
         slidesImgContainer.appendChild(img);
 
-        // Select menu
         let option = document.createElement('option');
         option.value = i;
         option.text = getSlideName(i);
         select.appendChild(option);
+    }
+
+    // LOGIKA PRE LIGHTBOX
+    function openLightbox(src) {
+        if (currentMode !== 'noty') return; // Otvárať len ak sme v móde Noty
+        const lightbox = document.getElementById('lightbox');
+        const lightboxImg = document.getElementById('lightbox-img');
+        lightboxImg.src = src;
+        lightbox.style.display = 'flex';
+        // Zakázať scrollovanie pozadia pri otvorenom popupe
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeLightbox() {
+        document.getElementById('lightbox').style.display = 'none';
+        // Povoliť scrollovanie
+        document.body.style.overflow = 'auto';
     }
 
     function setMode(mode) {
@@ -166,7 +218,6 @@
         const textySec = document.getElementById('texty-section');
         const zoomCtrl = document.getElementById('zoom-controls');
         
-        // Prepnutie vizuálu tlačidiel
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
 
@@ -183,16 +234,10 @@
     }
 
     function updateDisplay() {
-        // Update Noty (posun slidera)
         slidesImgContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
-        
-        // Update Texty
         document.getElementById('text-display').innerText = texts[currentIndex];
-        
-        // Update UI prvky
         select.value = currentIndex;
         document.getElementById('counter').innerText = getSlideName(currentIndex);
-        
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -208,7 +253,6 @@
         updateDisplay();
     }
 
-    // Zoom funkcie
     function changeZoom(amount) {
         currentFontSize += amount;
         document.getElementById('text-display').style.fontSize = currentFontSize + "px";
@@ -218,13 +262,12 @@
         document.getElementById('text-display').style.fontSize = currentFontSize + "px";
     }
 
-    // Klávesnica
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowLeft") moveSlide(-1);
         if (e.key === "ArrowRight") moveSlide(1);
+        if (e.key === "Escape") closeLightbox(); // Zatvoriť ESC klávesou
     });
 
-    // Spustenie prvého zobrazenia
     updateDisplay();
 </script>
 
