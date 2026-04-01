@@ -36,14 +36,8 @@
         .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
         .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; cursor: zoom-in; }
 
-        #texty-section { 
-            width: 100%; min-height: 200px; padding: 25px; 
-            display: none; align-items: center; justify-content: center; 
-        }
-        .text-display { 
-            width: 100%; text-align: center; font-size: 1.3rem; 
-            line-height: 1.5; white-space: pre-line; color: #333; 
-        }
+        #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
+        .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
 
         /* LIGHTBOX */
         #lightbox {
@@ -69,12 +63,12 @@
         #lightbox-img {
             max-width: 98%; max-height: 98%;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            pointer-events: none; /* Umožňuje drag cez container */
+            pointer-events: auto; /* Povolíme udalosti na obrázku kvôli stopPropagation */
         }
         
         #close-lightbox {
             position: absolute; top: 20px; right: 30px;
-            color: white; font-size: 40px; font-weight: bold;
+            color: white; font-size: 45px; font-weight: bold;
             cursor: pointer; z-index: 1001; user-select: none;
         }
 
@@ -91,7 +85,7 @@
 
         @media (max-width: 480px) {
             .main-title { font-size: 1.3rem; }
-            #close-lightbox { top: 10px; right: 20px; font-size: 35px; }
+            #close-lightbox { top: 10px; right: 20px; font-size: 40px; }
         }
     </style>
 </head>
@@ -130,10 +124,10 @@
     </div>
 </div>
 
-<div id="lightbox" onmousedown="startDrag(event)" onmousemove="doDrag(event)" onmouseup="endDrag()" onmouseleave="endDrag()" onclick="checkBgClick(event)">
+<div id="lightbox">
     <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
     <div id="lightbox-container">
-        <img id="lightbox-img" src="" alt="Noty">
+        <img id="lightbox-img" src="" alt="Noty" onclick="event.stopPropagation()">
     </div>
 </div>
 
@@ -143,7 +137,6 @@
     let currentMode = 'noty';
     let currentFontSize = 22;
 
-    // Texty zastavení
     const texts = [
         "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
         "1. zastavenie:\nJežiš je odsúdený na smrť.",
@@ -169,7 +162,6 @@
         return `Zastavenie ${index}`;
     }
 
-    // Inicializácia slidera
     const slidesImgContainer = document.getElementById('slides-img');
     const select = document.getElementById('pageSelect');
 
@@ -193,6 +185,7 @@
 
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
     let initialPinchDist = 0;
+    let moveDistance = 0; // Pomocná premenná pre detekciu pohybu myši
 
     function openLightbox(src) {
         scale = 1; pointX = 0; pointY = 0;
@@ -207,37 +200,40 @@
         document.body.style.overflow = 'auto';
     }
 
-    function checkBgClick(e) {
-        // Zavrieť ak sa klikne na pozadie (lightbox), nie na obrázok
-        if (e.target === lb || e.target === lbContainer) closeLightbox();
-    }
-
     function updateTransform() {
         lbContainer.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // --- MYŠ (PC) POSÚVANIE ---
-    function startDrag(e) {
-        if (scale > 1) {
-            isDragging = true;
-            startX = e.clientX - pointX;
-            startY = e.clientY - pointY;
-        }
-    }
-    function doDrag(e) {
-        if (isDragging) {
-            pointX = e.clientX - startX;
-            pointY = e.clientY - startY;
-            updateTransform();
-        }
-    }
-    function endDrag() { isDragging = false; }
+    // --- OVLÁDANIE MYŠOU (PC) ---
+    lb.onmousedown = function(e) {
+        moveDistance = 0; 
+        startX = e.clientX - pointX;
+        startY = e.clientY - pointY;
+        isDragging = true;
+    };
 
-    // --- ZOOM KOLIESKOM (PC) ---
+    window.onmousemove = function(e) {
+        if (!isDragging) return;
+        moveDistance += Math.abs(e.movementX) + Math.abs(e.movementY);
+        pointX = e.clientX - startX;
+        pointY = e.clientY - startY;
+        updateTransform();
+    };
+
+    window.onmouseup = function(e) {
+        if (!isDragging) return;
+        isDragging = false;
+        // Ak sa myš takmer nepohla (kliknutie) a klikli sme na pozadie
+        if (moveDistance < 5 && (e.target === lb || e.target === lbContainer)) {
+            closeLightbox();
+        }
+    };
+
+    // --- ZOOM KOLIESKOM (PC) - OPRAVENÝ NA KURZOR ---
     lb.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = -e.deltaY;
-        const zoomSpeed = 0.1;
+        const zoomSpeed = 0.2;
         const oldScale = scale;
         
         if (delta > 0) scale *= (1 + zoomSpeed);
@@ -245,13 +241,14 @@
         
         scale = Math.min(Math.max(1, scale), 6);
         
-        // Priblíženie k pozícii myši
+        // Výpočet pozície kurzora voči kontajneru
         const rect = lb.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-        
-        pointX = mouseX - (mouseX - pointX) * (scale / oldScale);
-        pointY = mouseY - (mouseY - pointY) * (scale / oldScale);
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Matematický posun aby zoom smeroval na kurzor
+        pointX = x - (x - pointX) * (scale / oldScale);
+        pointY = y - (y - pointY) * (scale / oldScale);
         
         updateTransform();
     }, { passive: false });
@@ -260,22 +257,23 @@
     lb.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
             initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-        } else if (e.touches.length === 1 && scale > 1) {
-            isDragging = true;
+        } else if (e.touches.length === 1) {
             startX = e.touches[0].pageX - pointX;
             startY = e.touches[0].pageY - pointY;
+            isDragging = true;
         }
     });
 
     lb.addEventListener('touchmove', (e) => {
-        e.preventDefault();
         if (e.touches.length === 2) {
+            e.preventDefault();
             let dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
             let factor = dist / initialPinchDist;
             scale = Math.min(Math.max(1, scale * factor), 6);
             initialPinchDist = dist;
             updateTransform();
-        } else if (isDragging && e.touches.length === 1) {
+        } else if (isDragging && e.touches.length === 1 && scale > 1) {
+            e.preventDefault();
             pointX = e.touches[0].pageX - startX;
             pointY = e.touches[0].pageY - startY;
             updateTransform();
@@ -284,7 +282,7 @@
 
     lb.addEventListener('touchend', () => { isDragging = false; });
 
-    // Ostatné funkcie
+    // Ostatné funkcie (Zmena módu, navigácia...)
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
