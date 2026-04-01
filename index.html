@@ -46,24 +46,23 @@
             z-index: 1000;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.95);
+            justify-content: center;
+            align-items: center;
             overflow: hidden;
         }
 
         #lightbox-container {
             width: 100%; height: 100%;
-            position: relative;
+            display: flex; justify-content: center; align-items: center;
             cursor: grab;
         }
 
         #lightbox-img {
-            position: absolute;
+            max-width: 95%;
+            max-height: 95%;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            transform-origin: 0 0;
+            transition: transform 0.1s ease-out; /* Plynulý zoom na PC */
             user-select: none;
-            -webkit-user-drag: none;
-            max-width: none; 
-            transition: transform 0.1s ease-out;
-            will-change: transform;
         }
 
         #close-lightbox {
@@ -125,7 +124,7 @@
 
 <div id="lightbox">
     <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
-    <div id="lightbox-container" onmousedown="handleBgMouseDown(event)">
+    <div id="lightbox-container" onclick="handleBgClick(event)">
         <img id="lightbox-img" src="" alt="Noty">
     </div>
 </div>
@@ -141,7 +140,7 @@
         "1. zastavenie:\nJežiš je odsúdený na smrť.",
         "2. zastavenie:\nJežiš berie kríž na svoje plecia.",
         "3. zastavenie:\nJežiš padá prvý raz pod krížom.",
-        "4. zastavenie:\nJežiš sa stretá so souvenir Matkou.",
+        "4. zastavenie:\nJežiš sa stretá so svojou Matkou.",
         "5. zastavenie:\nŠimon Cyrenajský pomáha Ježišovi niesť kríž.",
         "6. zastavenie:\nVeronika podáva Ježišovi šatku.",
         "7. zastavenie:\nJežiš padá druhý raz pod krížom.",
@@ -177,86 +176,68 @@
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU ---
+    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
-    const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
 
     function openLightbox(src) {
+        scale = 1; pointX = 0; pointY = 0;
+        updateTransform();
         lbImg.src = src;
-        lb.style.display = 'block';
+        lb.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
-        lbImg.onload = function() {
-            scale = 1;
-            const windowW = window.innerWidth;
-            const windowH = window.innerHeight;
-            
-            let ratio = Math.min(windowW * 0.9 / lbImg.naturalWidth, windowH * 0.9 / lbImg.naturalHeight);
-            lbImg.width = lbImg.naturalWidth * ratio;
-            lbImg.height = lbImg.naturalHeight * ratio;
-
-            pointX = (windowW - lbImg.width) / 2;
-            pointY = (windowH - lbImg.height) / 2;
-            
-            updateTransform();
-        };
-
-        if (isMobile) {
-            document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
-        }
+        // Viewport trik pre mobil
+        document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
         document.body.style.overflow = 'auto';
-        if (isMobile) {
-            const vp = document.getElementById('viewport');
-            vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
-            setTimeout(() => { vp.content = "width=device-width, initial-scale=1.0"; }, 300);
-        }
+
+        // Reset viewportu pre mobil
+        const vp = document.getElementById('viewport');
+        vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+        setTimeout(() => {
+            vp.content = "width=device-width, initial-scale=1.0";
+        }, 300);
     }
 
-    function handleBgMouseDown(e) {
-        if (e.target !== lbImg) {
-            closeLightbox();
-        } else if (!isMobile) {
-            isDragging = true;
-            startX = e.clientX - pointX;
-            startY = e.clientY - pointY;
-            lbImg.style.cursor = 'grabbing';
-            e.preventDefault();
-        }
+    function handleBgClick(e) {
+        if (e.target !== lbImg) closeLightbox();
     }
 
     function updateTransform() {
         lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // ZOOM KOLIESKOM (PC)
+    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
     lb.addEventListener('wheel', (e) => {
-        if (isMobile) return;
         e.preventDefault();
-        
         const delta = -e.deltaY;
-        const zoomSpeed = 0.15;
         const oldScale = scale;
-
-        if (delta > 0) scale *= (1 + zoomSpeed);
-        else scale /= (1 + zoomSpeed);
-        
+        scale *= (delta > 0 ? 1.15 : 0.85);
         scale = Math.min(Math.max(1, scale), 6);
 
-        const mouseX = e.clientX;
-        const mouseY = e.clientY;
-
-        pointX = mouseX - (mouseX - pointX) * (scale / oldScale);
-        pointY = mouseY - (mouseY - pointY) * (scale / oldScale);
+        // Výpočet zoomu na kurzor
+        const rect = lbImg.getBoundingClientRect();
+        pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
+        pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
         
         updateTransform();
     }, { passive: false });
+
+    // ŤAHANIE MYŠOU (Vždy aktívne pre PC)
+    lb.onmousedown = function(e) {
+        if (scale > 1 && e.target === lbImg) {
+            isDragging = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            lbImg.style.cursor = 'grabbing';
+            e.preventDefault();
+        }
+    };
 
     window.onmousemove = function(e) {
         if (!isDragging) return;
@@ -267,9 +248,10 @@
 
     window.onmouseup = function() {
         isDragging = false;
-        if (lbImg) lbImg.style.cursor = 'grab';
+        lbImg.style.cursor = 'grab';
     };
 
+    // --- ZVYŠOK FUNKCIÍ ---
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
