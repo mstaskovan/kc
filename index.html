@@ -6,14 +6,29 @@
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
+        /* ZÁKLADNÉ NASTAVENIA */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        body {background-color: #f4f4f4; display: flex; flex-direction: column; align-items: center; padding: 10px; min-height: 100%; overflow-x: hidden; }
+        
+        html, body {
+            background-color: #f4f4f4;
+            min-height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+        }
 
-/* Pridané: ochrana pre html element */
-html {
-    height: -webkit-fill-available;
-    background-color: #f4f4f4;
-}
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 10px; 
+        }
+
+        /* ZÁMOK POZADIA PRI OTVORENOM LIGHTBOXE */
+        body.modal-open {
+            position: fixed;
+            overflow: hidden;
+            width: 100%;
+        }
 
         .main-title {
             text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
@@ -29,6 +44,7 @@ html {
         #btn-noty.active { background: #8e44ad; }
         #btn-texty.active { background: #27ae60; }
 
+        /* OVLÁDANIE PÍSMA */
         #zoom-controls { margin-bottom: 15px; display: none; gap: 10px; }
         #zoom-controls.visible { display: flex; }
         .zoom-btn { background: #ddd; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
@@ -40,7 +56,14 @@ html {
 
         #noty-section { position: relative; overflow: hidden; width: 100%; }
         .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
-        .slides img { width: 100%; height: auto; flex-shrink: 0; display: block; cursor: zoom-in; }
+        .slides img { 
+            width: 100%; 
+            height: auto; 
+            flex-shrink: 0; 
+            display: block; 
+            cursor: zoom-in; 
+            object-fit: contain; /* Zabezpečí správne zobrazenie na PC */
+        }
 
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
         .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
@@ -49,32 +72,32 @@ html {
         #lightbox {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 2000;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+            background-color: rgba(0, 0, 0, 0.9);
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            touch-action: none; /* Dôležité pre vlastný zoom */
         }
 
         #lightbox-container {
             width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
-            cursor: grab;
         }
 
         #lightbox-img {
             max-width: 95%;
             max-height: 95%;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease-out; /* Plynulý zoom na PC */
+            transition: transform 0.1s ease-out;
             user-select: none;
         }
 
         #close-lightbox {
             position: fixed; top: 20px; right: 30px;
             color: white; font-size: 50px; font-weight: bold;
-            z-index: 1001; cursor: pointer; user-select: none;
+            z-index: 2001; cursor: pointer; user-select: none;
         }
 
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
@@ -140,6 +163,7 @@ html {
     let currentIndex = 0;
     let currentMode = 'noty';
     let currentFontSize = 22;
+    let scrollPos = 0;
 
     const texts = [
         "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
@@ -182,32 +206,28 @@ html {
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
+    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE PINCH) ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
+    let initialDist = -1;
 
     function openLightbox(src) {
+        scrollPos = window.pageYOffset;
+        document.body.style.top = `-${scrollPos}px`;
+        document.body.classList.add('modal-open');
+        
         scale = 1; pointX = 0; pointY = 0;
         updateTransform();
         lbImg.src = src;
         lb.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-
-        // Viewport trik pre mobil
-        document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
-        document.body.style.overflow = 'auto';
-
-        // Reset viewportu pre mobil
-        const vp = document.getElementById('viewport');
-        vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
-        setTimeout(() => {
-            vp.content = "width=device-width, initial-scale=1.0";
-        }, 300);
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, scrollPos);
     }
 
     function handleBgClick(e) {
@@ -218,23 +238,19 @@ html {
         lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
+    // PC ZOOM (KOLIESKO)
     lb.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = -e.deltaY;
         const oldScale = scale;
         scale *= (delta > 0 ? 1.15 : 0.85);
         scale = Math.min(Math.max(1, scale), 6);
-
-        // Výpočet zoomu na kurzor
-        const rect = lbImg.getBoundingClientRect();
         pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
         pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
-        
         updateTransform();
     }, { passive: false });
 
-    // ŤAHANIE MYŠOU (Vždy aktívne pre PC)
+    // PC DRAG (MYŠ)
     lb.onmousedown = function(e) {
         if (scale > 1 && e.target === lbImg) {
             isDragging = true;
@@ -244,20 +260,35 @@ html {
             e.preventDefault();
         }
     };
-
     window.onmousemove = function(e) {
         if (!isDragging) return;
         pointX = e.clientX - startX;
         pointY = e.clientY - startY;
         updateTransform();
     };
+    window.onmouseup = function() { isDragging = false; lbImg.style.cursor = 'grab'; };
 
-    window.onmouseup = function() {
-        isDragging = false;
-        lbImg.style.cursor = 'grab';
-    };
+    // MOBILE PINCH ZOOM (DVOMA PRSTAMI)
+    lb.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 2) {
+            initialDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+        }
+    }, { passive: true });
 
-    // --- ZVYŠOK FUNKCIÍ ---
+    lb.addEventListener('touchmove', (e) => {
+        if (e.touches.length === 2 && initialDist > 0) {
+            e.preventDefault();
+            const currentDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+            const zoomFactor = currentDist / initialDist;
+            scale = Math.min(Math.max(1, scale * zoomFactor), 6);
+            initialDist = currentDist;
+            updateTransform();
+        }
+    }, { passive: false });
+
+    lb.addEventListener('touchend', () => { initialDist = -1; });
+
+    // --- REŽIMY A NAVIGÁCIA ---
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
@@ -286,9 +317,7 @@ html {
     }
 
     function moveSlide(direction) {
-        currentIndex += direction;
-        if (currentIndex >= totalSlides) currentIndex = 0;
-        if (currentIndex < 0) currentIndex = totalSlides - 1;
+        currentIndex = (currentIndex + direction + totalSlides) % totalSlides;
         updateDisplay();
     }
 
