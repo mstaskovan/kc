@@ -54,16 +54,15 @@
         #lightbox-container {
             width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
-            overflow: hidden;
+            cursor: grab;
         }
 
         #lightbox-img {
-            max-width: 95%; max-height: 95%;
+            max-width: 95%;
+            max-height: 95%;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease-out;
-            cursor: grab;
+            transition: transform 0.1s ease-out; /* Plynulý zoom na PC */
             user-select: none;
-            -webkit-user-drag: none;
         }
 
         #close-lightbox {
@@ -85,7 +84,6 @@
 
         @media (max-width: 480px) {
             #close-lightbox { top: 10px; right: 20px; font-size: 40px; }
-            #lightbox-img { max-width: 100%; max-height: 100%; cursor: default; }
         }
     </style>
 </head>
@@ -126,7 +124,7 @@
 
 <div id="lightbox">
     <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
-    <div id="lightbox-container" onclick="checkBgClick(event)">
+    <div id="lightbox-container" onclick="handleBgClick(event)">
         <img id="lightbox-img" src="" alt="Noty">
     </div>
 </div>
@@ -178,11 +176,9 @@
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU ---
+    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
-    const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0);
-
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
 
     function openLightbox(src) {
@@ -192,76 +188,70 @@
         lb.style.display = 'flex';
         document.body.style.overflow = 'hidden';
 
-        // Na mobile povolíme zoom celého okna
-        if (isMobile) {
-            document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
-        }
+        // Viewport trik pre mobil
+        document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
         document.body.style.overflow = 'auto';
 
-        if (isMobile) {
-            // Reset viewportu
-            const vp = document.getElementById('viewport');
-            vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
-            setTimeout(() => {
-                vp.content = "width=device-width, initial-scale=1.0";
-            }, 300);
-        }
+        // Reset viewportu pre mobil
+        const vp = document.getElementById('viewport');
+        vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
+        setTimeout(() => {
+            vp.content = "width=device-width, initial-scale=1.0";
+        }, 300);
     }
 
-    function checkBgClick(e) {
+    function handleBgClick(e) {
         if (e.target !== lbImg) closeLightbox();
     }
 
     function updateTransform() {
-        if (!isMobile) {
-            lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-        }
+        lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // --- LEN PRE PC (MYŠ) ---
-    if (!isMobile) {
-        lbImg.addEventListener('wheel', (e) => {
+    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
+    lb.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = -e.deltaY;
+        const oldScale = scale;
+        scale *= (delta > 0 ? 1.15 : 0.85);
+        scale = Math.min(Math.max(1, scale), 6);
+
+        // Výpočet zoomu na kurzor
+        const rect = lbImg.getBoundingClientRect();
+        pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
+        pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
+        
+        updateTransform();
+    }, { passive: false });
+
+    // ŤAHANIE MYŠOU (Vždy aktívne pre PC)
+    lb.onmousedown = function(e) {
+        if (scale > 1 && e.target === lbImg) {
+            isDragging = true;
+            startX = e.clientX - pointX;
+            startY = e.clientY - pointY;
+            lbImg.style.cursor = 'grabbing';
             e.preventDefault();
-            const delta = -e.deltaY;
-            const oldScale = scale;
-            scale *= (delta > 0 ? 1.2 : 0.8);
-            scale = Math.min(Math.max(1, scale), 6);
+        }
+    };
 
-            const rect = lbImg.getBoundingClientRect();
-            pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
-            pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
-            
-            updateTransform();
-        }, { passive: false });
+    window.onmousemove = function(e) {
+        if (!isDragging) return;
+        pointX = e.clientX - startX;
+        pointY = e.clientY - startY;
+        updateTransform();
+    };
 
-        lbImg.onmousedown = function(e) {
-            if (scale > 1) {
-                isDragging = true;
-                startX = e.clientX - pointX;
-                startY = e.clientY - pointY;
-                lbImg.style.cursor = 'grabbing';
-                e.preventDefault();
-            }
-        };
+    window.onmouseup = function() {
+        isDragging = false;
+        lbImg.style.cursor = 'grab';
+    };
 
-        window.onmousemove = function(e) {
-            if (!isDragging) return;
-            pointX = e.clientX - startX;
-            pointY = e.clientY - startY;
-            updateTransform();
-        };
-
-        window.onmouseup = function() {
-            isDragging = false;
-            lbImg.style.cursor = 'grab';
-        };
-    }
-
-    // --- ZVYŠOK FUNKCIÍ (Módy, Navigácia) ---
+    // --- ZVYŠOK FUNKCIÍ ---
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
