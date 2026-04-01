@@ -2,7 +2,7 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
@@ -39,37 +39,31 @@
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
         .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
 
-        /* LIGHTBOX */
+        /* JEDNODUCHÝ LIGHTBOX */
         #lightbox {
             display: none;
             position: fixed;
             z-index: 1000;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.95);
+            background-color: rgba(0, 0, 0, 0.9);
             justify-content: center;
             align-items: center;
-            overflow: hidden;
-            touch-action: none;
-            cursor: grab;
-        }
-        #lightbox:active { cursor: grabbing; }
-        
-        #lightbox-container {
-            width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            will-change: transform;
+            overflow: auto; /* Umožní scrollovanie na PC ak je obrázok veľký */
+            cursor: pointer;
         }
 
-        #lightbox-img {
-            max-width: 98%; max-height: 98%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5);
-            pointer-events: auto; /* Povolíme udalosti na obrázku kvôli stopPropagation */
+        #lightbox img {
+            max-width: 95%;
+            margin: auto;
+            display: block;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            cursor: default;
         }
-        
+
         #close-lightbox {
-            position: absolute; top: 20px; right: 30px;
-            color: white; font-size: 45px; font-weight: bold;
-            cursor: pointer; z-index: 1001; user-select: none;
+            position: fixed; top: 20px; right: 30px;
+            color: white; font-size: 50px; font-weight: bold;
+            z-index: 1001; cursor: pointer;
         }
 
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
@@ -84,8 +78,8 @@
         .show-flex { display: flex !important; }
 
         @media (max-width: 480px) {
-            .main-title { font-size: 1.3rem; }
             #close-lightbox { top: 10px; right: 20px; font-size: 40px; }
+            #lightbox img { max-width: 100%; } /* Na mobile využiť celú šírku */
         }
     </style>
 </head>
@@ -124,11 +118,9 @@
     </div>
 </div>
 
-<div id="lightbox">
-    <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
-    <div id="lightbox-container">
-        <img id="lightbox-img" src="" alt="Noty" onclick="event.stopPropagation()">
-    </div>
+<div id="lightbox" onclick="closeLightbox()">
+    <span id="close-lightbox">&times;</span>
+    <img id="lightbox-img" src="" alt="Noty" onclick="event.stopPropagation()">
 </div>
 
 <script>
@@ -178,111 +170,33 @@
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU ---
-    const lb = document.getElementById('lightbox');
-    const lbContainer = document.getElementById('lightbox-container');
-    const lbImg = document.getElementById('lightbox-img');
-
-    let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
-    let initialPinchDist = 0;
-    let moveDistance = 0; // Pomocná premenná pre detekciu pohybu myši
+    // --- LIGHTBOX LOGIKA ---
 
     function openLightbox(src) {
-        scale = 1; pointX = 0; pointY = 0;
-        updateTransform();
+        const lb = document.getElementById('lightbox');
+        const lbImg = document.getElementById('lightbox-img');
         lbImg.src = src;
         lb.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
 
     function closeLightbox() {
-        lb.style.display = 'none';
+        document.getElementById('lightbox').style.display = 'none';
         document.body.style.overflow = 'auto';
+
+        // DETEKCIA MOBILU A RESET ZOOMU
+        if ('ontouchstart' in window || navigator.maxTouchPoints > 0) {
+            const vp = document.getElementById('viewport');
+            const originalContent = vp.content;
+            vp.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
+            setTimeout(() => {
+                vp.content = originalContent;
+            }, 300);
+        }
     }
 
-    function updateTransform() {
-        lbContainer.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-    }
+    // --- ZVYŠOK FUNKCIÍ ---
 
-    // --- OVLÁDANIE MYŠOU (PC) ---
-    lb.onmousedown = function(e) {
-        moveDistance = 0; 
-        startX = e.clientX - pointX;
-        startY = e.clientY - pointY;
-        isDragging = true;
-    };
-
-    window.onmousemove = function(e) {
-        if (!isDragging) return;
-        moveDistance += Math.abs(e.movementX) + Math.abs(e.movementY);
-        pointX = e.clientX - startX;
-        pointY = e.clientY - startY;
-        updateTransform();
-    };
-
-    window.onmouseup = function(e) {
-        if (!isDragging) return;
-        isDragging = false;
-        // Ak sa myš takmer nepohla (kliknutie) a klikli sme na pozadie
-        if (moveDistance < 5 && (e.target === lb || e.target === lbContainer)) {
-            closeLightbox();
-        }
-    };
-
-    // --- ZOOM KOLIESKOM (PC) - OPRAVENÝ NA KURZOR ---
-    lb.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const delta = -e.deltaY;
-        const zoomSpeed = 0.2;
-        const oldScale = scale;
-        
-        if (delta > 0) scale *= (1 + zoomSpeed);
-        else scale /= (1 + zoomSpeed);
-        
-        scale = Math.min(Math.max(1, scale), 6);
-        
-        // Výpočet pozície kurzora voči kontajneru
-        const rect = lb.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-
-        // Matematický posun aby zoom smeroval na kurzor
-        pointX = x - (x - pointX) * (scale / oldScale);
-        pointY = y - (y - pointY) * (scale / oldScale);
-        
-        updateTransform();
-    }, { passive: false });
-
-    // --- DOTYKY (MOBIL) ---
-    lb.addEventListener('touchstart', (e) => {
-        if (e.touches.length === 2) {
-            initialPinchDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-        } else if (e.touches.length === 1) {
-            startX = e.touches[0].pageX - pointX;
-            startY = e.touches[0].pageY - pointY;
-            isDragging = true;
-        }
-    });
-
-    lb.addEventListener('touchmove', (e) => {
-        if (e.touches.length === 2) {
-            e.preventDefault();
-            let dist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
-            let factor = dist / initialPinchDist;
-            scale = Math.min(Math.max(1, scale * factor), 6);
-            initialPinchDist = dist;
-            updateTransform();
-        } else if (isDragging && e.touches.length === 1 && scale > 1) {
-            e.preventDefault();
-            pointX = e.touches[0].pageX - startX;
-            pointY = e.touches[0].pageY - startY;
-            updateTransform();
-        }
-    }, { passive: false });
-
-    lb.addEventListener('touchend', () => { isDragging = false; });
-
-    // Ostatné funkcie (Zmena módu, navigácia...)
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
