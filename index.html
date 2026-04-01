@@ -2,34 +2,41 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
+        /* ZÁKLADNÝ RESET A STYLING */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        body { 
-    background-color: #f4f4f4; 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    padding: 10px; 
-    /* Zmena: nepoužívame pevných 100vh, ktoré na mobile zlostia */
-    min-height: 100%; 
-    /* Zabezpečí, že nič nevyčnieva do strán */
-    overflow-x: hidden; 
-}
+        
+        html, body {
+            background-color: #f4f4f4;
+            min-height: 100%;
+            width: 100%;
+            overflow-x: hidden;
+        }
 
-/* Pridané: ochrana pre html element */
-html {
-    height: -webkit-fill-available;
-    background-color: #f4f4f4;
-}
+        body { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            padding: 10px;
+        }
+
+        /* PROFESIONÁLNY ZÁMOK POZADIA */
+        body.modal-open {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
 
         .main-title {
             text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
             font-size: 1.6rem; line-height: 1.2; font-weight: bold;
         }
 
+        /* NAVIGÁCIA A MÓDY */
         .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; gap: 10px; }
         .mode-btn { 
             background: #ccc; color: #333; border: none; padding: 10px 20px; 
@@ -39,10 +46,12 @@ html {
         #btn-noty.active { background: #8e44ad; }
         #btn-texty.active { background: #27ae60; }
 
+        /* ZOOM PRE TEXT */
         #zoom-controls { margin-bottom: 15px; display: none; gap: 10px; }
         #zoom-controls.visible { display: flex; }
         .zoom-btn { background: #ddd; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
 
+        /* KONTAJNER PRE OBSAH */
         .slider-wrapper { 
             width: 100%; max-width: 900px; background: white; border-radius: 12px; 
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); padding: 5px; overflow: hidden;
@@ -55,38 +64,40 @@ html {
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
         .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
 
-        /* LIGHTBOX */
+        /* LIGHTBOX S PRIEHLADNÝM POZADÍM */
         #lightbox {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 2000;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
+            background-color: rgba(0, 0, 0, 0.8); /* Tu si nastavuješ priehľadnosť */
             justify-content: center;
             align-items: center;
             overflow: hidden;
+            touch-action: none; /* Dôležité pre blokovanie gest na pozadí */
         }
 
         #lightbox-container {
             width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
-            cursor: grab;
+            touch-action: pinch-zoom; /* Povolí zoom len vnútri kontajnera */
         }
 
         #lightbox-img {
             max-width: 95%;
             max-height: 95%;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease-out; /* Plynulý zoom na PC */
+            transition: transform 0.1s ease-out;
             user-select: none;
         }
 
         #close-lightbox {
             position: fixed; top: 20px; right: 30px;
             color: white; font-size: 50px; font-weight: bold;
-            z-index: 1001; cursor: pointer; user-select: none;
+            z-index: 2001; cursor: pointer; user-select: none;
         }
 
+        /* SPODNÁ NAVIGÁCIA */
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
         .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
         .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; }
@@ -150,6 +161,7 @@ html {
     let currentIndex = 0;
     let currentMode = 'noty';
     let currentFontSize = 22;
+    let scrollPosition = 0;
 
     const texts = [
         "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
@@ -176,6 +188,7 @@ html {
         return `Zastavenie ${index}`;
     }
 
+    // Inicializácia slidov
     const slidesImgContainer = document.getElementById('slides-img');
     const select = document.getElementById('pageSelect');
 
@@ -192,27 +205,37 @@ html {
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
+    // --- PROFESIONÁLNA LOGIKA LIGHTBOXU ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
 
     function openLightbox(src) {
+        // 1. Zapamätať scroll a zamknúť body
+        scrollPosition = window.pageYOffset;
+        document.body.style.top = `-${scrollPosition}px`;
+        document.body.classList.add('modal-open');
+
+        // 2. Nastaviť obrázok a zobraziť lightbox
         scale = 1; pointX = 0; pointY = 0;
         updateTransform();
         lbImg.src = src;
         lb.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
 
-        // Viewport trik pre mobil
+        // 3. Povoliť zoom vo viewporte
         document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
+        // 1. Skryť lightbox
         lb.style.display = 'none';
-        document.body.style.overflow = 'auto';
 
-        // Reset viewportu pre mobil
+        // 2. Odomknúť body a vrátiť scroll
+        document.body.classList.remove('modal-open');
+        document.body.style.top = '';
+        window.scrollTo(0, scrollPosition);
+
+        // 3. Resetovať viewport na fixný (prevencia rozbitia layoutu webu)
         const vp = document.getElementById('viewport');
         vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
         setTimeout(() => {
@@ -228,7 +251,7 @@ html {
         lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
+    // ZOOM KOLIESKOM (PC)
     lb.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = -e.deltaY;
@@ -236,15 +259,13 @@ html {
         scale *= (delta > 0 ? 1.15 : 0.85);
         scale = Math.min(Math.max(1, scale), 6);
 
-        // Výpočet zoomu na kurzor
-        const rect = lbImg.getBoundingClientRect();
         pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
         pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
         
         updateTransform();
     }, { passive: false });
 
-    // ŤAHANIE MYŠOU (Vždy aktívne pre PC)
+    // DRAG MYŠOU (PC)
     lb.onmousedown = function(e) {
         if (scale > 1 && e.target === lbImg) {
             isDragging = true;
@@ -267,14 +288,16 @@ html {
         lbImg.style.cursor = 'grab';
     };
 
-    // --- ZVYŠOK FUNKCIÍ ---
+    // --- OVLÁDANIE MÓDOV A SLIDOV ---
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
         const textySec = document.getElementById('texty-section');
         const zoomCtrl = document.getElementById('zoom-controls');
+        
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
+        
         if (mode === 'noty') {
             notySec.classList.remove('hidden');
             textySec.classList.remove('show-flex');
@@ -311,6 +334,7 @@ html {
         currentFontSize += amount;
         document.getElementById('text-display').style.fontSize = currentFontSize + "px";
     }
+
     function resetZoom() {
         currentFontSize = 22;
         document.getElementById('text-display').style.fontSize = currentFontSize + "px";
