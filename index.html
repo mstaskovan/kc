@@ -7,27 +7,23 @@
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; }
-        
-        html, body {
-            background-color: #f4f4f4;
-            min-height: 100%;
-            /* Zamedzenie horizontálnemu posunu celej stránky */
-            overflow-x: hidden;
-            width: 100%;
-        }
-
         body { 
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            padding: 10px; 
-        }
+    background-color: #f4f4f4; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    padding: 10px; 
+    /* Zmena: nepoužívame pevných 100vh, ktoré na mobile zlostia */
+    min-height: 100%; 
+    /* Zabezpečí, že nič nevyčnieva do strán */
+    overflow-x: hidden; 
+}
 
-        /* Keď je lightbox otvorený, body stratí schopnosť scrollovať */
-        body.modal-open {
-            overflow: hidden !important;
-            touch-action: none; /* Zakáže gestá na úrovni CSS pre moderné prehliadače */
-        }
+/* Pridané: ochrana pre html element */
+html {
+    height: -webkit-fill-available;
+    background-color: #f4f4f4;
+}
 
         .main-title {
             text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
@@ -65,24 +61,23 @@
             position: fixed;
             z-index: 1000;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            background-color: rgba(0, 0, 0, 0.95);
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            /* Lightboxu musíme povoliť gestá, aby fungoval zoom v ňom */
-            touch-action: pinch-zoom; 
         }
 
         #lightbox-container {
             width: 100%; height: 100%;
             display: flex; justify-content: center; align-items: center;
+            cursor: grab;
         }
 
         #lightbox-img {
             max-width: 95%;
             max-height: 95%;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
-            transition: transform 0.1s ease-out;
+            transition: transform 0.1s ease-out; /* Plynulý zoom na PC */
             user-select: none;
         }
 
@@ -92,7 +87,7 @@
             z-index: 1001; cursor: pointer; user-select: none;
         }
 
-        .navigation-bar { margin-top: 10px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
+        .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
         .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
         .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; }
         
@@ -156,7 +151,6 @@
     let currentMode = 'noty';
     let currentFontSize = 22;
 
-    // --- LOGIKA TEXTOV ---
     const texts = [
         "Úvodná pieseň:\nAdoramus te Christe benedicimus tibi, quia per crucem tuam redemisti mundum...",
         "1. zastavenie:\nJežiš je odsúdený na smrť.",
@@ -198,48 +192,32 @@
         select.appendChild(option);
     }
 
-    // --- LOGIKA LIGHTBOXU S ABSOLÚTNYM ZÁMKOM POZADIA ---
+    // --- LOGIKA LIGHTBOXU (PC ZOOM + MOBILE NATIVE) ---
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
     let scale = 1, pointX = 0, pointY = 0, startX = 0, startY = 0, isDragging = false;
-
-    // Funkcia na fyzické blokovanie scrollovania/zoomu
-    function preventDefault(e) {
-        // Blokujeme len vtedy, ak sa nedotýkame priamo obrázka v lightboxe
-        if (lb.style.display === 'flex' && e.target !== lbImg) {
-            e.preventDefault();
-        }
-    }
 
     function openLightbox(src) {
         scale = 1; pointX = 0; pointY = 0;
         updateTransform();
         lbImg.src = src;
         lb.style.display = 'flex';
-        
-        // Aktivácia zámku na body
-        document.body.classList.add('modal-open');
-        
-        // Pridanie poslucháčov na blokovanie dotykov (dôležité pre iOS)
-        window.addEventListener('touchmove', preventDefault, { passive: false });
-        window.addEventListener('wheel', preventDefault, { passive: false });
+        document.body.style.overflow = 'hidden';
 
-        // Odomknutie viewportu pre zoom obrázka
+        // Viewport trik pre mobil
         document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
-        document.body.classList.remove('modal-open');
-        
-        // Odstránenie zámkov
-        window.removeEventListener('touchmove', preventDefault);
-        window.removeEventListener('wheel', preventDefault);
+        document.body.style.overflow = 'auto';
 
-        // Reset viewportu
+        // Reset viewportu pre mobil
         const vp = document.getElementById('viewport');
         vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0";
-        setTimeout(() => { vp.content = "width=device-width, initial-scale=1.0"; }, 300);
+        setTimeout(() => {
+            vp.content = "width=device-width, initial-scale=1.0";
+        }, 300);
     }
 
     function handleBgClick(e) {
@@ -250,20 +228,23 @@
         lbImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // ZOOM KOLIESKOM (PC)
+    // ZOOM KOLIESKOM (Vždy aktívny pre PC)
     lb.addEventListener('wheel', (e) => {
-        if (lb.style.display !== 'flex') return;
         e.preventDefault();
         const delta = -e.deltaY;
         const oldScale = scale;
         scale *= (delta > 0 ? 1.15 : 0.85);
         scale = Math.min(Math.max(1, scale), 6);
+
+        // Výpočet zoomu na kurzor
+        const rect = lbImg.getBoundingClientRect();
         pointX = e.clientX - (e.clientX - pointX) * (scale / oldScale);
         pointY = e.clientY - (e.clientY - pointY) * (scale / oldScale);
+        
         updateTransform();
     }, { passive: false });
 
-    // ŤAHANIE (PC)
+    // ŤAHANIE MYŠOU (Vždy aktívne pre PC)
     lb.onmousedown = function(e) {
         if (scale > 1 && e.target === lbImg) {
             isDragging = true;
@@ -273,18 +254,20 @@
             e.preventDefault();
         }
     };
+
     window.onmousemove = function(e) {
         if (!isDragging) return;
         pointX = e.clientX - startX;
         pointY = e.clientY - startY;
         updateTransform();
     };
+
     window.onmouseup = function() {
         isDragging = false;
         lbImg.style.cursor = 'grab';
     };
 
-    // --- OSTATNÉ FUNKCIE ---
+    // --- ZVYŠOK FUNKCIÍ ---
     function setMode(mode) {
         currentMode = mode;
         const notySec = document.getElementById('noty-section');
