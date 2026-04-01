@@ -16,7 +16,6 @@
         }
 
         body { display: flex; flex-direction: column; align-items: center; padding: 10px; }
-
         body.modal-open { overflow: hidden !important; height: 100vh; }
 
         .main-title {
@@ -29,7 +28,7 @@
             background: #ccc; color: #333; border: none; padding: 10px 20px; 
             border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: 0.3s;
         }
-        .mode-btn.active { color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .mode-btn.active { color: white; }
         #btn-noty.active { background: #8e44ad; }
         #btn-texty.active { background: #27ae60; }
 
@@ -44,15 +43,12 @@
 
         #noty-section { position: relative; overflow: hidden; width: 100%; }
         .slides { display: flex; transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); align-items: center; }
-        .slides img { 
-            width: 100%; height: auto; max-height: 70vh; 
-            object-fit: contain; flex-shrink: 0; display: block; cursor: zoom-in; 
-        }
+        .slides img { width: 100%; height: auto; max-height: 70vh; object-fit: contain; flex-shrink: 0; display: block; cursor: zoom-in; }
 
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
-        .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; white-space: pre-line; color: #333; }
+        .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; color: #333; }
 
-        /* UPRAVENÝ HYBRIDNÝ LIGHTBOX */
+        /* LIGHTBOX */
         #lightbox {
             display: none;
             position: fixed;
@@ -70,7 +66,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 40px 10px; /* Priestor pre krížik */
         }
 
         #lightbox-img {
@@ -78,32 +73,29 @@
             max-height: 95%;
             box-shadow: 0 0 30px rgba(0,0,0,0.5);
             transition: transform 0.1s ease-out;
-            user-select: none;
             will-change: transform;
             cursor: grab;
-            display: block;
         }
 
-        /* OPRAVENÝ KRÍŽIK - Fixný na obrazovke s pozadím */
-        #close-lightbox {
-            position: fixed; 
-            top: 15px; 
-            right: 15px;
-            color: white; 
-            font-size: 35px; 
-            line-height: 40px;
-            text-align: center;
-            width: 45px;
-            height: 45px;
-            background: rgba(0, 0, 0, 0.5); /* Tmavý kruh aby bol krížik vždy vidieť */
+        /* ABSOLÚTNY FIX KRÍŽIKA - Mimo lightboxu v HTML */
+        #global-close-btn {
+            display: none; /* Zobrazí sa cez JS */
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 0, 0, 0.7); /* Červenkasté, aby ho bolo vidieť */
+            color: white;
+            font-size: 40px;
+            font-weight: bold;
             border-radius: 50%;
-            z-index: 3000; 
-            cursor: pointer; 
-            user-select: none;
-            display: flex;
+            z-index: 9999; /* Úplne navrchu */
+            cursor: pointer;
             align-items: center;
             justify-content: center;
-            border: 1px solid rgba(255,255,255,0.3);
+            border: 2px solid white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
@@ -111,16 +103,17 @@
         .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; }
         
         .controls-center { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
-        select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
-        .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; }
+        .counter { font-size: 0.85rem; color: #666; font-weight: bold; }
 
         @media (max-width: 1024px) {
-            #close-lightbox { top: 10px; right: 10px; }
-            #lightbox-img { transition: none; } 
+            #lightbox-img { transition: none; }
         }
     </style>
 </head>
 <body>
+
+<div id="global-close-btn" onclick="closeLightbox()">&times;</div>
 
 <h1 class="main-title">Krížová cesta 2026<br>Rajecké Teplice</h1>
 
@@ -131,7 +124,7 @@
 
 <div id="zoom-controls">
     <button class="zoom-btn" onclick="changeZoom(-2)">A-</button>
-    <button class="zoom-btn" onclick="resetZoom()">Pôvodná veľkosť</button>
+    <button class="zoom-btn" onclick="resetZoom()">Pôvodná</button>
     <button class="zoom-btn" onclick="changeZoom(2)">A+</button>
 </div>
 
@@ -155,10 +148,9 @@
     </div>
 </div>
 
-<div id="lightbox">
-    <span id="close-lightbox" onclick="closeLightbox()">&times;</span>
+<div id="lightbox" onclick="handleBgClick(event)">
     <div id="lightbox-container">
-        <img id="lightbox-img" src="" alt="Noty">
+        <img id="lightbox-img" src="" alt="Noty" onclick="event.stopPropagation()">
     </div>
 </div>
 
@@ -167,23 +159,24 @@
     let currentIndex = 0;
     let currentFontSize = 22;
 
+    // TERAZ MÔŽEŠ POUŽÍVAŤ <br> PRE NOVÉ RIADKY A <b> PRE HRUBÉ PÍSMO
     const texts = [
-        "Úvodná pieseň:\nÚ1: Per crucem tuam adoramus Te, o Christe. Crucem tuam adoramus te, o Christe. <br> Ú2: A. Zostaňte a bdejte so mnou, bdejte a proste, bdejte a proste.",
-        "1. zastavenie:\nJežiš je odsúdený na smrť.",
-        "2. zastavenie:\nJežiš berie kríž na svoje plecia.",
-        "3. zastavenie:\nJežiš padá prvý raz pod krížom.",
-        "4. zastavenie:\nJežiš sa stretá so svojou Matkou.",
-        "5. zastavenie:\nŠimon Cyrenajský pomáha Ježišovi niesť kríž.",
-        "6. zastavenie:\nVeronika podáva Ježišovi šatku.",
-        "7. zastavenie:\nJežiš padá druhý raz pod krížom.",
-        "8. zastavenie:\nJežiš napomína plačúce ženy.",
-        "9. zastavenie:\nJežiš padá tretí raz pod krížom.",
-        "10. zastavenie:\nJežišovi vyzliekajú šaty.",
-        "11. zastavenie:\nJežiša pribíjajú na kríž.",
-        "12. zastavenie:\nJežiš na kríži zomiera.",
-        "13. zastavenie:\nJežiša snímajú z kríža.",
-        "14. zastavenie:\nJežiša pochovávajú.",
-        "Záverečná pieseň:\nKristus víťaz, Kristus kráľ!"
+        "<b>Úvodná pieseň:</b><br>Ú1: Per crucem tuam adoramus Te, o Christe.<br>Ú2: A. Zostaňte a bdejte so mnou...",
+        "<b>1. zastavenie:</b><br>Ježiš je odsúdený na smrť.",
+        "<b>2. zastavenie:</b><br>Ježiš berie kríž na plecia.",
+        "<b>3. zastavenie:</b><br>Ježiš padá prvý raz...",
+        "<b>4. zastavenie:</b><br>Ježiš sa stretá s Matkou.",
+        "<b>5. zastavenie:</b><br>Šimon pomáha Ježišovi.",
+        "<b>6. zastavenie:</b><br>Veronika podáva šatku.",
+        "<b>7. zastavenie:</b><br>Ježiš padá druhý raz.",
+        "<b>8. zastavenie:</b><br>Ježiš napomína ženy.",
+        "<b>9. zastavenie:</b><br>Ježiš padá tretí raz.",
+        "<b>10. zastavenie:</b><br>Ježišovi vyzliekajú šaty.",
+        "<b>11. zastavenie:</b><br>Ježiša pribíjajú na kríž.",
+        "<b>12. zastavenie:</b><br>Ježiš na kríži zomiera.",
+        "<b>13. zastavenie:</b><br>Ježiša snímajú z kríža.",
+        "<b>14. zastavenie:</b><br>Ježiša pochovávajú.",
+        "<b>Záverečná pieseň:</b><br>Kristus víťaz, Kristus kráľ!"
     ];
 
     function getSlideName(index) {
@@ -210,27 +203,30 @@
 
     const lb = document.getElementById('lightbox');
     const lbImg = document.getElementById('lightbox-img');
+    const closeBtn = document.getElementById('global-close-btn');
     let scale = 1, offsetX = 0, offsetY = 0, isDragging = false, startX, startY;
 
     function openLightbox(src) {
         scale = 1; offsetX = 0; offsetY = 0;
         lbImg.src = src;
         lb.style.display = 'block';
+        closeBtn.style.display = 'flex'; // Zobrazíme krížik navrchu všetkého
         document.body.classList.add('modal-open');
         updateTransform();
-        
-        // Povolíme zoom v meta tagu
         document.getElementById('viewport').content = "width=device-width, initial-scale=1.0, maximum-scale=10.0, user-scalable=yes";
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
+        closeBtn.style.display = 'none'; // Schováme krížik
         document.body.classList.remove('modal-open');
-        
-        // Vrátime meta tag späť
         const vp = document.getElementById('viewport');
         vp.content = "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
         setTimeout(() => { vp.content = "width=device-width, initial-scale=1.0"; }, 300);
+    }
+
+    function handleBgClick(e) {
+        if (e.target.id === 'lightbox' || e.target.id === 'lightbox-container') closeLightbox();
     }
 
     function updateTransform() {
@@ -241,6 +237,7 @@
         }
     }
 
+    // PC ZOOM KOLIESKOM
     lb.addEventListener('wheel', (e) => {
         if (window.innerWidth <= 1024) return;
         e.preventDefault();
@@ -250,6 +247,7 @@
         updateTransform();
     }, { passive: false });
 
+    // PC DRAG
     lbImg.addEventListener('mousedown', (e) => {
         if (window.innerWidth > 1024 && scale > 1) {
             isDragging = true;
@@ -259,25 +257,10 @@
             e.preventDefault();
         }
     });
+    window.addEventListener('mousemove', (e) => { if (isDragging) { offsetX = e.clientX - startX; offsetY = e.clientY - startY; updateTransform(); } });
+    window.addEventListener('mouseup', () => { isDragging = false; lbImg.style.cursor = 'grab'; });
 
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        offsetX = e.clientX - startX;
-        offsetY = e.clientY - startY;
-        updateTransform();
-    });
-
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        lbImg.style.cursor = 'grab';
-    });
-
-    lb.addEventListener('click', (e) => {
-        if (e.target === lb || e.target.id === 'lightbox-container') {
-            closeLightbox();
-        }
-    });
-
+    // --- FUNKCIE PRE REŽIMY ---
     function setMode(mode) {
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
@@ -289,7 +272,8 @@
 
     function updateDisplay() {
         slidesImgContainer.style.transform = `translateX(${-currentIndex * 100}%)`;
-        document.getElementById('text-display').innerText = texts[currentIndex];
+        // ZMENA NA innerHTML ABY FUNGOVALI <br>
+        document.getElementById('text-display').innerHTML = texts[currentIndex];
         select.value = currentIndex;
         document.getElementById('counter').innerText = getSlideName(currentIndex);
     }
