@@ -2,7 +2,7 @@
 <html lang="sk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
     <title>Krížová cesta 2026, Rajecké Teplice</title>
     <link rel="icon" href="img/icon.jpg" type="img/jpg">
     <style>
@@ -66,6 +66,7 @@
             background-color: rgba(0, 0, 0, 0.95);
             justify-content: center;
             align-items: center;
+            touch-action: pinch-zoom; /* Povolí zoomovanie v popupe */
         }
         #lightbox img {
             max-width: 98%;
@@ -84,19 +85,17 @@
             user-select: none;
         }
 
-        /* Pomocné triedy */
-        .hidden { display: none !important; }
-        .show-flex { display: flex !important; }
-
         /* Navigácia pod sliderom */
         .navigation-bar { margin-top: 15px; display: flex; flex-direction: column; align-items: center; gap: 15px; width: 100%; max-width: 900px; }
         .nav-controls { display: flex; justify-content: space-between; width: 100%; gap: 10px; }
         .nav-btn { background: #4a4a4a; color: white; border: none; padding: 12px; font-size: 1rem; cursor: pointer; border-radius: 8px; flex: 1; transition: 0.2s; }
-        .nav-btn:hover { background: #222; }
-
+        
         .controls-center { display: flex; flex-direction: column; align-items: center; gap: 5px; width: 100%; }
         select { width: 100%; max-width: 250px; padding: 12px; font-size: 1rem; border-radius: 8px; border: 1px solid #ccc; background: white; }
         .counter { font-size: 0.85rem; color: #666; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+
+        .hidden { display: none !important; }
+        .show-flex { display: flex !important; }
 
         @media (max-width: 480px) {
             .main-title { font-size: 1.3rem; }
@@ -124,7 +123,6 @@
     <div id="noty-section">
         <div class="slides" id="slides-img"></div>
     </div>
-
     <div id="texty-section">
         <div id="text-display" class="text-display"></div>
     </div>
@@ -135,7 +133,6 @@
         <button class="nav-btn" onclick="moveSlide(-1)">&#10094; Späť</button>
         <button class="nav-btn" onclick="moveSlide(1)">Ďalej &#10095;</button>
     </div>
-    
     <div class="controls-center">
         <div class="counter" id="counter">Úvod</div>
         <select id="pageSelect" onchange="goToSlide(this.value)"></select>
@@ -185,7 +182,6 @@
         let fileName = (i + 1) < 10 ? `0${i + 1}` : (i + 1);
         let img = document.createElement('img');
         img.src = `img/${fileName}.jpg`;
-        // Pridáme funkciu na otvorenie popupu pri kliknutí
         img.onclick = function() { openLightbox(this.src); };
         slidesImgContainer.appendChild(img);
 
@@ -195,21 +191,30 @@
         select.appendChild(option);
     }
 
-    // LOGIKA PRE LIGHTBOX
     function openLightbox(src) {
-        if (currentMode !== 'noty') return; // Otvárať len ak sme v móde Noty
+        if (currentMode !== 'noty') return;
         const lightbox = document.getElementById('lightbox');
         const lightboxImg = document.getElementById('lightbox-img');
         lightboxImg.src = src;
         lightbox.style.display = 'flex';
-        // Zakázať scrollovanie pozadia pri otvorenom popupe
         document.body.style.overflow = 'hidden';
     }
 
+    // UPRAVENÁ FUNKCIA NA ZATVORENIE - RESETUJE ZOOM STRÁNKY
     function closeLightbox() {
         document.getElementById('lightbox').style.display = 'none';
-        // Povoliť scrollovanie
         document.body.style.overflow = 'auto';
+        
+        // Trik na resetovanie viewportu (priblíženia)
+        const viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            const originalContent = viewport.content;
+            // Dočasne zakážeme zoom a hneď ho vrátime, čím vynútime prekreslenie
+            viewport.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0';
+            setTimeout(() => {
+                viewport.content = originalContent;
+            }, 300);
+        }
     }
 
     function setMode(mode) {
@@ -265,7 +270,7 @@
     document.addEventListener('keydown', (e) => {
         if (e.key === "ArrowLeft") moveSlide(-1);
         if (e.key === "ArrowRight") moveSlide(1);
-        if (e.key === "Escape") closeLightbox(); // Zatvoriť ESC klávesou
+        if (e.key === "Escape") closeLightbox();
     });
 
     updateDisplay();
