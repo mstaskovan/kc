@@ -18,6 +18,24 @@
         body { display: flex; flex-direction: column; align-items: center; padding: 10px; }
         body.modal-open { overflow: hidden !important; }
 
+        /* TLAČIDLO ZDIEĽAŤ */
+        #share-trigger {
+            position: fixed;
+            top: 15px;
+            right: 15px;
+            z-index: 1000;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 5px 8px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        #share-trigger img { width: 28px; height: auto; }
+        #share-trigger span { font-size: 10px; font-weight: bold; color: #333; margin-top: 2px; text-transform: uppercase; }
+
         .main-title {
             text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
             font-size: 1.6rem; line-height: 1.2; font-weight: bold;
@@ -48,14 +66,14 @@
         #texty-section { width: 100%; min-height: 200px; padding: 25px; display: none; align-items: center; justify-content: center; }
         .text-display { width: 100%; text-align: center; font-size: 1.3rem; line-height: 1.5; color: #333; }
 
-        /* LIGHTBOX - JEDNOTNÝ PRE VŠETKO */
+        /* LIGHTBOX */
         #lightbox {
             display: none;
             position: fixed;
             z-index: 2000;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: rgba(0, 0, 0, 0.95);
-            touch-action: none; /* Dôležité: zakáže prehliadaču hýbať stránkou */
+            touch-action: none;
         }
 
         #lightbox-container {
@@ -73,7 +91,6 @@
             cursor: grab;
         }
 
-        /* OPRAVENÝ KRÍŽIK - teraz má display: none v základe */
         #global-close-btn {
             display: none; 
             position: fixed;
@@ -106,6 +123,11 @@
     </style>
 </head>
 <body>
+
+<div id="share-trigger" onclick="openLightbox('img/qr.png')">
+    <img src="img/share_icon.jpg" alt="Zdieľať" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2550/2550209.png'">
+    <span>Zdieľať</span>
+</div>
 
 <div id="global-close-btn" onclick="closeLightbox()">&#10005;</div>
 
@@ -198,7 +220,6 @@
     const lbImg = document.getElementById('lightbox-img');
     const closeBtn = document.getElementById('global-close-btn');
     
-    // Zoom/Drag premenné
     let scale = 1, offsetX = 0, offsetY = 0;
     let isDragging = false, startX, startY;
     let initialPinchDistance = 0, initialScale = 1;
@@ -207,14 +228,14 @@
         scale = 1; offsetX = 0; offsetY = 0;
         lbImg.src = src;
         lb.style.display = 'block';
-        closeBtn.style.display = 'flex'; // Zobraziť až pri otvorení
+        closeBtn.style.display = 'flex'; 
         document.body.classList.add('modal-open');
         updateTransform();
     }
 
     function closeLightbox() {
         lb.style.display = 'none';
-        closeBtn.style.display = 'none'; // Skryť pri zatvorení
+        closeBtn.style.display = 'none'; 
         document.body.classList.remove('modal-open');
     }
 
@@ -222,7 +243,6 @@
         lbImg.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
     }
 
-    // --- PC OVLÁDANIE ---
     lb.addEventListener('wheel', (e) => {
         e.preventDefault();
         const delta = e.deltaY > 0 ? 0.85 : 1.15;
@@ -231,7 +251,6 @@
         updateTransform();
     }, { passive: false });
 
-    // --- DRAG (MYŠ AJ DOTYK) ---
     const startDrag = (x, y) => {
         if (scale > 1) {
             isDragging = true;
@@ -252,7 +271,6 @@
     window.addEventListener('mousemove', (e) => doDrag(e.clientX, e.clientY));
     window.addEventListener('mouseup', () => { isDragging = false; lbImg.style.cursor = 'grab'; });
 
-    // --- MOBIL ZOOM (PINCH-TO-ZOOM) ---
     lb.addEventListener('touchstart', (e) => {
         if (e.touches.length === 2) {
             initialPinchDistance = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
@@ -276,7 +294,6 @@
 
     lb.addEventListener('touchend', () => { isDragging = false; });
 
-    // --- OSTATNÉ ---
     function setMode(mode) {
         document.getElementById('btn-noty').classList.toggle('active', mode === 'noty');
         document.getElementById('btn-texty').classList.toggle('active', mode === 'texty');
