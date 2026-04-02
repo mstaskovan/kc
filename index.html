@@ -18,30 +18,22 @@
         body { display: flex; flex-direction: column; align-items: center; padding: 10px; }
         body.modal-open { overflow: hidden !important; }
 
-        /* TLAČIDLO ZDIEĽAŤ */
-        #share-trigger {
-            position: fixed;
-            top: 15px;
-            right: 15px;
-            z-index: 1000;
-            cursor: pointer;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.8);
-            padding: 5px 8px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        #share-trigger img { width: 28px; height: auto; }
-        #share-trigger span { font-size: 10px; font-weight: bold; color: #333; margin-top: 2px; text-transform: uppercase; }
-
         .main-title {
             text-align: center; color: #2c3e50; margin: 20px 0 10px 0;
             font-size: 1.6rem; line-height: 1.2; font-weight: bold;
         }
 
-        .top-nav { margin-bottom: 15px; width: 100%; max-width: 900px; display: flex; justify-content: center; gap: 10px; }
+        /* UPRAVENÁ NAVIGÁCIA S TLAČIDLOM V STREDE */
+        .top-nav { 
+            margin-bottom: 15px; 
+            width: 100%; 
+            max-width: 900px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            gap: 12px; 
+        }
+
         .mode-btn { 
             background: #ccc; color: #333; border: none; padding: 10px 20px; 
             border-radius: 20px; font-weight: bold; font-size: 0.9rem; cursor: pointer;
@@ -49,6 +41,22 @@
         .mode-btn.active { color: white; }
         #btn-noty.active { background: #8e44ad; }
         #btn-texty.active { background: #27ae60; }
+
+        /* ZMENŠENÉ A VYCENTROVANÉ TLAČIDLO ZDIEĽAŤ */
+        #share-trigger {
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+            border: 1px solid #ddd;
+            min-width: 65px;
+        }
+        #share-trigger img { width: 22px; height: auto; }
+        #share-trigger span { font-size: 9px; font-weight: bold; color: #333; margin-top: 1px; text-transform: uppercase; }
 
         #zoom-controls { margin-bottom: 15px; display: none; gap: 10px; }
         #zoom-controls.visible { display: flex; }
@@ -124,19 +132,20 @@
 </head>
 <body>
 
-<div id="share-trigger" onclick="openLightbox('img/qr.png')">
-    <img src="img/share_icon.jpg" alt="Zdieľať" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2550/2550209.png'">
-    <span>Zdieľať</span>
-</div>
-
-<div id="global-close-btn" onclick="closeLightbox()">&#10005;</div>
-
 <h1 class="main-title">Krížová cesta 2026<br>Rajecké Teplice</h1>
 
 <div class="top-nav">
     <button id="btn-noty" class="mode-btn active" onclick="setMode('noty')">NOTY</button>
+    
+    <div id="share-trigger" onclick="openLightbox('img/qr.png')">
+        <img src="img/1000025911.jpg" alt="Zdieľať" onerror="this.src='https://cdn-icons-png.flaticon.com/512/2550/2550209.png'">
+        <span>Zdieľať</span>
+    </div>
+
     <button id="btn-texty" class="mode-btn" onclick="setMode('texty')">TEXTY</button>
 </div>
+
+<div id="global-close-btn" onclick="closeLightbox()">&#10005;</div>
 
 <div id="zoom-controls">
     <button class="zoom-btn" onclick="changeZoom(-2)">A-</button>
@@ -171,6 +180,7 @@
 </div>
 
 <script>
+    // Tu nasleduje ten istý JavaScript ako v predchádzajúcej verzii
     const totalSlides = 16;
     let currentIndex = 0;
     let currentFontSize = 22;
